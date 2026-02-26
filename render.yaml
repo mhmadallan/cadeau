@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: cadeau
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install && npm run css:build
+    startCommand: npm start
+    healthCheckPath: /api/products
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_KEY
+        sync: false

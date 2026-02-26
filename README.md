@@ -43,6 +43,20 @@ Admin pages:
 - Add/manage products: `http://localhost:4000/admin.html`
 - Edit product: available from Admin page only (requires admin key)
 
+## Deploy on Render (Auto update on every push)
+
+1. Push this repository to GitHub (already done).
+2. In Render dashboard, click `New` -> `Blueprint`.
+3. Connect your GitHub account and select this repo: `mhmadallan/cadeau`.
+4. Render will detect [`render.yaml`](./render.yaml) and create the web service.
+5. In Render service environment variables, set:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `ADMIN_KEY`
+6. Deploy.
+
+After this one-time setup, every push to `main` on GitHub auto-deploys to Render (`autoDeploy: true`).
+
 ## API Endpoints
 
 - `GET /api/products`
