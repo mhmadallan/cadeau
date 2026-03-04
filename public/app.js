@@ -1,15 +1,10 @@
 const apiBase = '/api/products';
 
 const message = document.getElementById('message');
+const authMessage = document.getElementById('authMessage');
 const productsGrid = document.getElementById('productsGrid');
 const refreshBtn = document.getElementById('refreshBtn');
-
-const authMessage = document.getElementById('authMessage');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const signupBtn = document.getElementById('signupBtn');
-const signinBtn = document.getElementById('signinBtn');
-const googleBtn = document.getElementById('googleBtn');
+const signinLink = document.getElementById('signinLink');
 const logoutBtn = document.getElementById('logoutBtn');
 const adminLink = document.getElementById('adminLink');
 
@@ -22,13 +17,7 @@ function setMessage(text, isError = false) {
 
 function setAuthMessage(text, isError = false) {
   authMessage.textContent = text || '';
-  authMessage.className = `mt-3 text-sm ${isError ? 'text-red-600' : 'text-emerald-700'}`;
-}
-
-function showSignedOutUi(statusText = 'Logged out.') {
-  adminLink.hidden = true;
-  logoutBtn.hidden = true;
-  setAuthMessage(statusText);
+  authMessage.className = `mb-2 text-sm ${isError ? 'text-red-600' : 'text-slate-600'}`;
 }
 
 function createProductCard(product) {
@@ -81,37 +70,6 @@ async function fetchProducts() {
   }
 }
 
-async function getAccessToken() {
-  const { data } = await authClient.auth.getSession();
-  return data.session?.access_token || null;
-}
-
-async function loadCurrentUser() {
-  const token = await getAccessToken();
-  if (!token) {
-    showSignedOutUi();
-    return;
-  }
-
-  const response = await fetch('/api/me', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    adminLink.hidden = true;
-    logoutBtn.hidden = false;
-    setAuthMessage('Signed in.');
-    return;
-  }
-
-  const me = await response.json();
-  logoutBtn.hidden = false;
-  adminLink.hidden = me.role !== 'admin';
-  setAuthMessage(`Signed in as ${me.email} (${me.role}).`);
-}
-
 async function createAuthClient() {
   const response = await fetch('/api/config');
   const config = await response.json();
@@ -122,45 +80,37 @@ async function createAuthClient() {
   authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 }
 
-signupBtn.addEventListener('click', async () => {
-  try {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    const { error } = await authClient.auth.signUp({ email, password });
-    if (error) throw error;
-    setAuthMessage('Account created. Check your email for confirmation if required.');
-    await loadCurrentUser();
-  } catch (error) {
-    setAuthMessage(error.message, true);
-  }
-});
+async function loadCurrentUser() {
+  const { data } = await authClient.auth.getSession();
+  const token = data.session?.access_token;
 
-signinBtn.addEventListener('click', async () => {
-  try {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    const { error } = await authClient.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    setAuthMessage('Signed in successfully.');
-    await loadCurrentUser();
-  } catch (error) {
-    setAuthMessage(error.message, true);
+  if (!token) {
+    signinLink.hidden = false;
+    logoutBtn.hidden = true;
+    adminLink.hidden = true;
+    setAuthMessage('You are browsing as a guest.');
+    return;
   }
-});
 
-googleBtn.addEventListener('click', async () => {
-  try {
-    const { error } = await authClient.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`,
-      },
-    });
-    if (error) throw error;
-  } catch (error) {
-    setAuthMessage(error.message, true);
+  signinLink.hidden = true;
+  logoutBtn.hidden = false;
+
+  const response = await fetch('/api/me', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    adminLink.hidden = true;
+    setAuthMessage('Signed in.');
+    return;
   }
-});
+
+  const me = await response.json();
+  adminLink.hidden = me.role !== 'admin';
+  setAuthMessage(`Signed in as ${me.email} (${me.role}).`);
+}
 
 logoutBtn.addEventListener('click', async () => {
   const { error } = await authClient.auth.signOut({ scope: 'local' });
@@ -168,7 +118,11 @@ logoutBtn.addEventListener('click', async () => {
     setAuthMessage(error.message, true);
     return;
   }
-  showSignedOutUi();
+
+  signinLink.hidden = false;
+  logoutBtn.hidden = true;
+  adminLink.hidden = true;
+  setAuthMessage('Logged out.');
 });
 
 refreshBtn.addEventListener('click', fetchProducts);

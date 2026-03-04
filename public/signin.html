@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In - Cadeau</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900">
+  <main class="mx-auto max-w-xl px-4 py-10">
+    <header class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold">Sign In</h1>
+        <p class="text-slate-600">Access your Cadeau account.</p>
+      </div>
+      <a href="/" class="rounded-lg bg-white px-4 py-2 text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50">Back Home</a>
+    </header>
+
+    <section class="rounded-xl bg-white p-6 shadow-sm">
+      <form id="signinForm" class="space-y-4">
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium">Email</span>
+          <input id="email" type="email" required class="w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium">Password</span>
+          <input id="password" type="password" required class="w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </label>
+        <button type="submit" class="w-full rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500">Sign In</button>
+      </form>
+
+      <button id="googleBtn" type="button" class="mt-3 w-full rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-500">Continue with Google</button>
+
+      <p class="mt-4 text-sm text-slate-600">
+        Don't have an account?
+        <a href="/signup.html" class="font-medium text-emerald-700 hover:text-emerald-600">Create account</a>
+      </p>
+
+      <p id="message" class="mt-3 text-sm"></p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/signin.js"></script>
+</body>
+</html>
