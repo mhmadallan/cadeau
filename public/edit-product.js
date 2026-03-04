@@ -1,6 +1,4 @@
 const apiBase = '/api/products';
-const adminVerifyApi = '/api/admin/verify';
-const adminKeyStorageKey = 'cadeau_admin_key';
 
 const productForm = document.getElementById('productForm');
 const nameInput = document.getElementById('name');
@@ -13,25 +11,51 @@ const message = document.getElementById('message');
 const params = new URLSearchParams(window.location.search);
 const productId = params.get('id');
 
-function getAdminKey() {
-  return sessionStorage.getItem(adminKeyStorageKey) || '';
-}
+let authClient;
+let accessToken = '';
 
 function setMessage(text, isError = false) {
   message.textContent = text || '';
   message.className = `mt-4 text-sm ${isError ? 'text-red-600' : 'text-emerald-700'}`;
 }
 
-async function verifyAdminKey(adminKey) {
-  const response = await fetch(adminVerifyApi, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ adminKey }),
+async function createAuthClient() {
+  const response = await fetch('/api/config');
+  const config = await response.json();
+  if (!response.ok) {
+    throw new Error(config.error || 'Failed to load auth config');
+  }
+  authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+}
+
+async function requireAdminSession() {
+  const { data } = await authClient.auth.getSession();
+  accessToken = data.session?.access_token || '';
+
+  if (!accessToken) {
+    window.location.href = '/';
+    return false;
+  }
+
+  const meResponse = await fetch('/api/me', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 
-  if (!response.ok) {
-    throw new Error('Admin access required');
+  if (!meResponse.ok) {
+    window.location.href = '/';
+    return false;
   }
+
+  const me = await meResponse.json();
+  if (me.role !== 'admin') {
+    setMessage('Admin access required.', true);
+    productForm.hidden = true;
+    return false;
+  }
+
+  return true;
 }
 
 async function loadProduct() {
@@ -54,7 +78,7 @@ async function updateProduct(payload) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'x-admin-key': getAdminKey(),
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(payload),
   });
@@ -94,19 +118,12 @@ async function init() {
     return;
   }
 
-  const adminKey = getAdminKey();
-  if (!adminKey) {
-    window.location.href = '/admin.html';
-    return;
-  }
-
-  try {
-    await verifyAdminKey(adminKey);
-    await loadProduct();
-  } catch (_error) {
-    sessionStorage.removeItem(adminKeyStorageKey);
-    window.location.href = '/admin.html';
-  }
+  await createAuthClient();
+  const allowed = await requireAdminSession();
+  if (!allowed) return;
+  await loadProduct();
 }
 
-init();
+init().catch((error) => {
+  setMessage(error.message, true);
+});

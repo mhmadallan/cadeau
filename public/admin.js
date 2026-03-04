@@ -1,12 +1,7 @@
 const apiBase = '/api/products';
-const adminVerifyApi = '/api/admin/verify';
-const adminKeyStorageKey = 'cadeau_admin_key';
 
-const authSection = document.getElementById('authSection');
-const manageSection = document.getElementById('manageSection');
-const adminKeyForm = document.getElementById('adminKeyForm');
-const adminKeyInput = document.getElementById('adminKey');
 const authMessage = document.getElementById('authMessage');
+const manageSection = document.getElementById('manageSection');
 const productForm = document.getElementById('productForm');
 const message = document.getElementById('message');
 const productsGrid = document.getElementById('productsGrid');
@@ -19,23 +14,17 @@ const priceInput = document.getElementById('price');
 const imageUrlInput = document.getElementById('image_url');
 const stockInput = document.getElementById('stock');
 
-function getAdminKey() {
-  return sessionStorage.getItem(adminKeyStorageKey) || '';
-}
+let authClient;
+let accessToken = '';
 
 function setAuthMessage(text, isError = false) {
   authMessage.textContent = text || '';
-  authMessage.className = `mt-3 text-sm ${isError ? 'text-red-600' : 'text-emerald-700'}`;
+  authMessage.className = `text-sm ${isError ? 'text-red-600' : 'text-slate-600'}`;
 }
 
 function setMessage(text, isError = false) {
   message.textContent = text || '';
   message.className = `mt-4 text-sm ${isError ? 'text-red-600' : 'text-emerald-700'}`;
-}
-
-function setAdminUi(enabled) {
-  authSection.hidden = enabled;
-  manageSection.hidden = !enabled;
 }
 
 function createProductCard(product) {
@@ -65,40 +54,64 @@ function createProductCard(product) {
   return card;
 }
 
-async function verifyAdminKey(adminKey) {
-  const response = await fetch(adminVerifyApi, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ adminKey }),
+async function createAuthClient() {
+  const response = await fetch('/api/config');
+  const config = await response.json();
+  if (!response.ok) {
+    throw new Error(config.error || 'Failed to load auth config');
+  }
+  authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+}
+
+async function requireAdminSession() {
+  const { data } = await authClient.auth.getSession();
+  accessToken = data.session?.access_token || '';
+
+  if (!accessToken) {
+    window.location.href = '/';
+    return false;
+  }
+
+  const meResponse = await fetch('/api/me', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Invalid admin key');
+  if (!meResponse.ok) {
+    window.location.href = '/';
+    return false;
   }
+
+  const me = await meResponse.json();
+  if (me.role !== 'admin') {
+    setAuthMessage('You are signed in, but your account is not an admin.', true);
+    manageSection.hidden = true;
+    return false;
+  }
+
+  setAuthMessage(`Admin access granted for ${me.email}.`);
+  manageSection.hidden = false;
+  return true;
 }
 
 async function fetchProducts() {
-  try {
-    const response = await fetch(apiBase);
-    const products = await response.json();
+  const response = await fetch(apiBase);
+  const products = await response.json();
 
-    if (!response.ok) {
-      throw new Error(products.error || 'Failed to fetch products');
-    }
-
-    productsGrid.innerHTML = '';
-    if (!products.length) {
-      productsGrid.innerHTML = '<p class="text-slate-600">No products available yet.</p>';
-      return;
-    }
-
-    products.forEach((product) => {
-      productsGrid.appendChild(createProductCard(product));
-    });
-  } catch (error) {
-    productsGrid.innerHTML = `<p class="text-red-600">${error.message}</p>`;
+  if (!response.ok) {
+    throw new Error(products.error || 'Failed to fetch products');
   }
+
+  productsGrid.innerHTML = '';
+  if (!products.length) {
+    productsGrid.innerHTML = '<p class="text-slate-600">No products available yet.</p>';
+    return;
+  }
+
+  products.forEach((product) => {
+    productsGrid.appendChild(createProductCard(product));
+  });
 }
 
 async function createProduct(payload) {
@@ -106,7 +119,7 @@ async function createProduct(payload) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-admin-key': getAdminKey(),
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(payload),
   });
@@ -120,7 +133,9 @@ async function createProduct(payload) {
 async function deleteProduct(id) {
   const response = await fetch(`${apiBase}/${id}`, {
     method: 'DELETE',
-    headers: { 'x-admin-key': getAdminKey() },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 
   if (!response.ok) {
@@ -133,21 +148,6 @@ function resetProductForm() {
   productForm.reset();
   stockInput.value = '0';
 }
-
-adminKeyForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const adminKey = adminKeyInput.value.trim();
-
-  try {
-    await verifyAdminKey(adminKey);
-    sessionStorage.setItem(adminKeyStorageKey, adminKey);
-    setAdminUi(true);
-    setAuthMessage('');
-    await fetchProducts();
-  } catch (error) {
-    setAuthMessage(error.message, true);
-  }
-});
 
 productForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -185,31 +185,32 @@ productsGrid.addEventListener('click', async (event) => {
   }
 });
 
-refreshBtn.addEventListener('click', fetchProducts);
+refreshBtn.addEventListener('click', async () => {
+  try {
+    await fetchProducts();
+  } catch (error) {
+    setMessage(error.message, true);
+  }
+});
 
-logoutBtn.addEventListener('click', () => {
-  sessionStorage.removeItem(adminKeyStorageKey);
-  setAdminUi(false);
-  setMessage('');
-  setAuthMessage('Admin panel locked.');
+logoutBtn.addEventListener('click', async () => {
+  const { error } = await authClient.auth.signOut({ scope: 'local' });
+  if (error) {
+    setAuthMessage(error.message, true);
+    return;
+  }
+  window.location.href = '/';
 });
 
 async function init() {
+  await createAuthClient();
+
+  const allowed = await requireAdminSession();
+  if (!allowed) return;
+
   await fetchProducts();
-
-  const existingKey = getAdminKey();
-  if (!existingKey) {
-    setAdminUi(false);
-    return;
-  }
-
-  try {
-    await verifyAdminKey(existingKey);
-    setAdminUi(true);
-  } catch (_error) {
-    sessionStorage.removeItem(adminKeyStorageKey);
-    setAdminUi(false);
-  }
 }
 
-init();
+init().catch((error) => {
+  setAuthMessage(error.message, true);
+});

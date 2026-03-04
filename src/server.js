@@ -7,7 +7,8 @@ const { getSupabaseClient } = require('./supabase');
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
-const adminKey = process.env.ADMIN_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 app.use(cors());
 app.use(express.json());
@@ -23,30 +24,85 @@ try {
 
 const tableName = 'products';
 
-function requireAdmin(req, res, next) {
-  if (!adminKey) {
-    return res.status(500).json({ error: 'ADMIN_KEY is not configured on the server' });
+function getBearerToken(req) {
+  const authHeader = req.get('authorization') || '';
+  const [type, token] = authHeader.split(' ');
+  if (type !== 'Bearer' || !token) {
+    return null;
+  }
+  return token;
+}
+
+async function getUserWithRole(req) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return { error: 'Authentication required', status: 401 };
   }
 
-  const providedKey = req.get('x-admin-key');
-  if (!providedKey || providedKey !== adminKey) {
-    return res.status(401).json({ error: 'Admin access is required' });
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !userData.user) {
+    return { error: 'Invalid or expired session', status: 401 };
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found', status: 403 };
+  }
+
+  return {
+    user: userData.user,
+    role: profile.role || 'user',
+  };
+}
+
+async function requireAuthenticatedUser(req, res, next) {
+  const result = await getUserWithRole(req);
+  if (result.error) {
+    return res.status(result.status).json({ error: result.error });
+  }
+
+  req.user = result.user;
+  req.userRole = result.role;
   return next();
 }
 
-app.post('/api/admin/verify', (req, res) => {
-  if (!adminKey) {
-    return res.status(500).json({ error: 'ADMIN_KEY is not configured on the server' });
+async function requireAdmin(req, res, next) {
+  const result = await getUserWithRole(req);
+  if (result.error) {
+    return res.status(result.status).json({ error: result.error });
   }
 
-  const { adminKey: keyFromBody } = req.body || {};
-  if (!keyFromBody || keyFromBody !== adminKey) {
-    return res.status(401).json({ error: 'Invalid admin key' });
+  if (result.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access is required' });
   }
 
-  return res.json({ ok: true });
+  req.user = result.user;
+  req.userRole = result.role;
+  return next();
+}
+
+app.get('/api/config', (_req, res) => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return res.status(500).json({ error: 'SUPABASE_URL and SUPABASE_ANON_KEY must be set' });
+  }
+
+  return res.json({
+    supabaseUrl,
+    supabaseAnonKey,
+  });
+});
+
+app.get('/api/me', requireAuthenticatedUser, (req, res) => {
+  return res.json({
+    id: req.user.id,
+    email: req.user.email,
+    role: req.userRole,
+  });
 });
 
 app.get('/api/products', async (_req, res) => {

@@ -22,7 +22,7 @@ npm install
 PORT=4000
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-ADMIN_KEY=change-this-admin-key
+SUPABASE_ANON_KEY=your-anon-publishable-key
 ```
 
 ## 3) Build CSS and run app
@@ -39,9 +39,12 @@ npm run dev
 
 Open: `http://localhost:4000`
 
-Admin pages:
-- Add/manage products: `http://localhost:4000/admin.html`
-- Edit product: available from Admin page only (requires admin key)
+Auth and admin:
+- Users can sign up/sign in with email+password or Google from `http://localhost:4000`.
+- Admin page: `http://localhost:4000/admin.html`
+- Edit page is available from Admin page only.
+- Admin access is based on `public.profiles.role = 'admin'`.
+- New users are created with role `user` by default.
 
 ## Deploy on Render (Auto update on every push)
 
@@ -52,7 +55,7 @@ Admin pages:
 5. In Render service environment variables, set:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `ADMIN_KEY`
+   - `SUPABASE_ANON_KEY`
 6. Deploy.
 
 After this one-time setup, every push to `main` on GitHub auto-deploys to Render (`autoDeploy: true`).
@@ -64,10 +67,21 @@ After this one-time setup, every push to `main` on GitHub auto-deploys to Render
 - `POST /api/products`
 - `PUT /api/products/:id`
 - `DELETE /api/products/:id`
-- `POST /api/admin/verify`
+- `GET /api/config`
+- `GET /api/me`
 
 Note:
-- `POST`, `PUT`, and `DELETE` product routes require `x-admin-key` header matching `ADMIN_KEY`.
+- `POST`, `PUT`, and `DELETE` product routes require a logged-in user with `role = admin`.
+
+## Promote a user to admin
+
+Run this in Supabase SQL Editor after the user signs up:
+
+```sql
+update public.profiles
+set role = 'admin'
+where email = 'your-admin-email@example.com';
+```
 
 ## Product payload
 
