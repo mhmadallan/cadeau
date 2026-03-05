@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Edit Product - Cadeau Admin</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900">
   <main class="mx-auto max-w-3xl px-4 py-8">
@@ -13,7 +13,7 @@
         <h1 class="text-3xl font-bold">Edit Product</h1>
         <p class="text-slate-600">Admin access required.</p>
       </div>
-      <a href="/admin.html" class="rounded-lg bg-white px-4 py-2 text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50">Back to Admin</a>
+      <a href="./admin.html" class="rounded-lg bg-white px-4 py-2 text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50">Back to Admin</a>
     </header>
 
     <section class="rounded-xl bg-white p-5 shadow-sm">
@@ -40,7 +40,7 @@
         </label>
         <div class="md:col-span-2 flex gap-3">
           <button class="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-700" type="submit">Update Product</button>
-          <a href="/admin.html" class="rounded-lg bg-slate-200 px-4 py-2 font-medium text-slate-800 hover:bg-slate-300">Cancel</a>
+          <a href="./admin.html" class="rounded-lg bg-slate-200 px-4 py-2 font-medium text-slate-800 hover:bg-slate-300">Cancel</a>
         </div>
       </form>
       <p id="message" class="mt-4 text-sm"></p>
@@ -48,6 +48,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/edit-product.js"></script>
+  <script src="./config.js"></script>
+  <script src="./edit-product.js"></script>
 </body>
 </html>

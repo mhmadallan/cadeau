@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cadeau Store</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900">
   <main class="mx-auto max-w-6xl px-4 py-8">
@@ -14,8 +14,8 @@
         <p class="text-slate-600">Browse available products.</p>
       </div>
       <div class="flex gap-3">
-        <a id="adminLink" href="/admin.html" class="rounded-lg bg-white px-4 py-2 text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50" hidden>Admin Panel</a>
-        <a id="signinLink" href="/signin.html" class="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500">Sign In</a>
+        <a id="adminLink" href="admin.html" class="rounded-lg bg-white px-4 py-2 text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50" hidden>Admin Panel</a>
+        <a id="signinLink" href="signin.html" class="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500">Sign In</a>
         <button id="logoutBtn" type="button" class="rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300" hidden>Logout</button>
         <button id="refreshBtn" class="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-700">Refresh Products</button>
       </div>
@@ -30,6 +30,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/app.js"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>

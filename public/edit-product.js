@@ -1,4 +1,6 @@
-const apiBase = '/api/products';
+const appConfig = window.APP_CONFIG || {};
+const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBase = `${apiBaseUrl}/api/products`;
 
 const productForm = document.getElementById('productForm');
 const nameInput = document.getElementById('name');
@@ -20,12 +22,20 @@ function setMessage(text, isError = false) {
 }
 
 async function createAuthClient() {
-  const response = await fetch('/api/config');
-  const config = await response.json();
-  if (!response.ok) {
-    throw new Error(config.error || 'Failed to load auth config');
+  let supabaseClientUrl = appConfig.SUPABASE_URL;
+  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
+
+  if (!supabaseClientUrl || !supabaseClientAnonKey) {
+    const response = await fetch(`${apiBaseUrl}/api/config`);
+    const config = await response.json();
+    if (!response.ok) {
+      throw new Error(config.error || 'Failed to load auth config');
+    }
+    supabaseClientUrl = config.supabaseUrl;
+    supabaseClientAnonKey = config.supabaseAnonKey;
   }
-  authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
 }
 
 async function requireAdminSession() {
@@ -33,18 +43,18 @@ async function requireAdminSession() {
   accessToken = data.session?.access_token || '';
 
   if (!accessToken) {
-    window.location.href = '/';
+    window.location.href = './index.html';
     return false;
   }
 
-  const meResponse = await fetch('/api/me', {
+  const meResponse = await fetch(`${apiBaseUrl}/api/me`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
 
   if (!meResponse.ok) {
-    window.location.href = '/';
+    window.location.href = './index.html';
     return false;
   }
 
@@ -104,7 +114,7 @@ productForm.addEventListener('submit', async (event) => {
     await updateProduct(payload);
     setMessage('Product updated successfully.');
     setTimeout(() => {
-      window.location.href = '/admin.html';
+      window.location.href = './admin.html';
     }, 700);
   } catch (error) {
     setMessage(error.message, true);

@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./supabase');
@@ -9,10 +8,25 @@ const app = express();
 const port = Number(process.env.PORT || 4000);
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const corsOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (!corsOrigins.length || corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Origin not allowed by CORS'));
+  },
+}));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
 
 let supabase;
 try {
@@ -204,8 +218,8 @@ app.delete('/api/products/:id', requireAdmin, async (req, res) => {
   return res.status(204).send();
 });
 
-app.get('/{*splat}', (_req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+app.get('/', (_req, res) => {
+  res.json({ ok: true, service: 'cadeau-api' });
 });
 
 app.listen(port, () => {

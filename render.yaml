@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     autoDeploy: true
-    buildCommand: npm install && npm run css:build
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/products
     envVars:
@@ -15,4 +15,6 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: CORS_ORIGINS
         sync: false

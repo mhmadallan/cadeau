@@ -4,6 +4,9 @@ const passwordInput = document.getElementById('password');
 const googleBtn = document.getElementById('googleBtn');
 const message = document.getElementById('message');
 
+const appConfig = window.APP_CONFIG || {};
+const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+
 let authClient;
 
 function setMessage(text, isError = false) {
@@ -12,13 +15,20 @@ function setMessage(text, isError = false) {
 }
 
 async function createAuthClient() {
-  const response = await fetch('/api/config');
-  const config = await response.json();
-  if (!response.ok) {
-    throw new Error(config.error || 'Failed to load auth config');
+  let supabaseClientUrl = appConfig.SUPABASE_URL;
+  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
+
+  if (!supabaseClientUrl || !supabaseClientAnonKey) {
+    const response = await fetch(`${apiBaseUrl}/api/config`);
+    const config = await response.json();
+    if (!response.ok) {
+      throw new Error(config.error || 'Failed to load auth config');
+    }
+    supabaseClientUrl = config.supabaseUrl;
+    supabaseClientAnonKey = config.supabaseAnonKey;
   }
 
-  authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
 }
 
 form.addEventListener('submit', async (event) => {
@@ -29,7 +39,7 @@ form.addEventListener('submit', async (event) => {
     const password = passwordInput.value;
     const { error } = await authClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    window.location.href = '/';
+    window.location.href = './index.html';
   } catch (error) {
     setMessage(error.message, true);
   }
@@ -37,10 +47,11 @@ form.addEventListener('submit', async (event) => {
 
 googleBtn.addEventListener('click', async () => {
   try {
+    const redirectTo = new URL('./index.html', window.location.href).toString();
     const { error } = await authClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo,
       },
     });
     if (error) throw error;
@@ -54,7 +65,7 @@ async function init() {
 
   const { data } = await authClient.auth.getSession();
   if (data.session) {
-    window.location.href = '/';
+    window.location.href = './index.html';
   }
 }
 

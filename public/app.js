@@ -1,4 +1,6 @@
-const apiBase = '/api/products';
+const appConfig = window.APP_CONFIG || {};
+const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBase = `${apiBaseUrl}/api/products`;
 
 const message = document.getElementById('message');
 const authMessage = document.getElementById('authMessage');
@@ -71,13 +73,20 @@ async function fetchProducts() {
 }
 
 async function createAuthClient() {
-  const response = await fetch('/api/config');
-  const config = await response.json();
-  if (!response.ok) {
-    throw new Error(config.error || 'Failed to load auth config');
+  let supabaseClientUrl = appConfig.SUPABASE_URL;
+  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
+
+  if (!supabaseClientUrl || !supabaseClientAnonKey) {
+    const response = await fetch(`${apiBaseUrl}/api/config`);
+    const config = await response.json();
+    if (!response.ok) {
+      throw new Error(config.error || 'Failed to load auth config');
+    }
+    supabaseClientUrl = config.supabaseUrl;
+    supabaseClientAnonKey = config.supabaseAnonKey;
   }
 
-  authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
 }
 
 async function loadCurrentUser() {
@@ -95,7 +104,7 @@ async function loadCurrentUser() {
   signinLink.hidden = true;
   logoutBtn.hidden = false;
 
-  const response = await fetch('/api/me', {
+  const response = await fetch(`${apiBaseUrl}/api/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

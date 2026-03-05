@@ -3,6 +3,9 @@ const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const message = document.getElementById('message');
 
+const appConfig = window.APP_CONFIG || {};
+const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+
 let authClient;
 
 function setMessage(text, isError = false) {
@@ -11,13 +14,20 @@ function setMessage(text, isError = false) {
 }
 
 async function createAuthClient() {
-  const response = await fetch('/api/config');
-  const config = await response.json();
-  if (!response.ok) {
-    throw new Error(config.error || 'Failed to load auth config');
+  let supabaseClientUrl = appConfig.SUPABASE_URL;
+  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
+
+  if (!supabaseClientUrl || !supabaseClientAnonKey) {
+    const response = await fetch(`${apiBaseUrl}/api/config`);
+    const config = await response.json();
+    if (!response.ok) {
+      throw new Error(config.error || 'Failed to load auth config');
+    }
+    supabaseClientUrl = config.supabaseUrl;
+    supabaseClientAnonKey = config.supabaseAnonKey;
   }
 
-  authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
 }
 
 form.addEventListener('submit', async (event) => {
@@ -30,7 +40,7 @@ form.addEventListener('submit', async (event) => {
     if (error) throw error;
     setMessage('Account created. You can now sign in.');
     setTimeout(() => {
-      window.location.href = '/signin.html';
+      window.location.href = './signin.html';
     }, 800);
   } catch (error) {
     setMessage(error.message, true);
@@ -42,7 +52,7 @@ async function init() {
 
   const { data } = await authClient.auth.getSession();
   if (data.session) {
-    window.location.href = '/';
+    window.location.href = './index.html';
   }
 }
 

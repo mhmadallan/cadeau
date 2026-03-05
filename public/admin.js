@@ -1,4 +1,6 @@
-const apiBase = '/api/products';
+const appConfig = window.APP_CONFIG || {};
+const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBase = `${apiBaseUrl}/api/products`;
 
 const authMessage = document.getElementById('authMessage');
 const manageSection = document.getElementById('manageSection');
@@ -45,7 +47,7 @@ function createProductCard(product) {
         <span class="rounded-full bg-slate-100 px-2 py-1 text-slate-700">Stock: ${product.stock ?? 0}</span>
       </div>
       <div class="mt-4 flex gap-2">
-        <a class="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-700" href="/edit-product.html?id=${product.id}">Edit</a>
+        <a class="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-700" href="./edit-product.html?id=${product.id}">Edit</a>
         <button class="delete-btn rounded-md bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-500" data-id="${product.id}">Delete</button>
       </div>
     </div>
@@ -55,12 +57,20 @@ function createProductCard(product) {
 }
 
 async function createAuthClient() {
-  const response = await fetch('/api/config');
-  const config = await response.json();
-  if (!response.ok) {
-    throw new Error(config.error || 'Failed to load auth config');
+  let supabaseClientUrl = appConfig.SUPABASE_URL;
+  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
+
+  if (!supabaseClientUrl || !supabaseClientAnonKey) {
+    const response = await fetch(`${apiBaseUrl}/api/config`);
+    const config = await response.json();
+    if (!response.ok) {
+      throw new Error(config.error || 'Failed to load auth config');
+    }
+    supabaseClientUrl = config.supabaseUrl;
+    supabaseClientAnonKey = config.supabaseAnonKey;
   }
-  authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
 }
 
 async function requireAdminSession() {
@@ -68,18 +78,18 @@ async function requireAdminSession() {
   accessToken = data.session?.access_token || '';
 
   if (!accessToken) {
-    window.location.href = '/';
+    window.location.href = './index.html';
     return false;
   }
 
-  const meResponse = await fetch('/api/me', {
+  const meResponse = await fetch(`${apiBaseUrl}/api/me`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
 
   if (!meResponse.ok) {
-    window.location.href = '/';
+    window.location.href = './index.html';
     return false;
   }
 
@@ -199,7 +209,7 @@ logoutBtn.addEventListener('click', async () => {
     setAuthMessage(error.message, true);
     return;
   }
-  window.location.href = '/';
+  window.location.href = './index.html';
 });
 
 async function init() {
