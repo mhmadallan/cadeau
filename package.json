@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "css:build": "npx @tailwindcss/cli -i ./public/input.css -o ./public/styles.css --minify",
-    "css:watch": "npx @tailwindcss/cli -i ./public/input.css -o ./public/styles.css --watch"
+    "css:build": "npx @tailwindcss/cli -i ./docs/input.css -o ./docs/styles.css --minify",
+    "css:watch": "npx @tailwindcss/cli -i ./docs/input.css -o ./docs/styles.css --watch"
   },
   "repository": {
     "type": "git",
