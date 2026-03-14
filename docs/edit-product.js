@@ -1,5 +1,4 @@
-const appConfig = window.APP_CONFIG || {};
-const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBaseUrl = window.CadeauAuth.apiBaseUrl;
 const apiBase = `${apiBaseUrl}/api/products`;
 
 const productForm = document.getElementById('productForm');
@@ -21,45 +20,21 @@ function setMessage(text, isError = false) {
   message.className = `mt-4 text-sm ${isError ? 'text-red-600' : 'text-emerald-700'}`;
 }
 
-async function createAuthClient() {
-  let supabaseClientUrl = appConfig.SUPABASE_URL;
-  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
-
-  if (!supabaseClientUrl || !supabaseClientAnonKey) {
-    const response = await fetch(`${apiBaseUrl}/api/config`);
-    const config = await response.json();
-    if (!response.ok) {
-      throw new Error(config.error || 'Failed to load auth config');
-    }
-    supabaseClientUrl = config.supabaseUrl;
-    supabaseClientAnonKey = config.supabaseAnonKey;
-  }
-
-  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
-}
-
 async function requireAdminSession() {
-  const { data } = await authClient.auth.getSession();
-  accessToken = data.session?.access_token || '';
+  const authState = await window.CadeauAuth.syncNavbar();
+  accessToken = authState.token;
 
-  if (!accessToken) {
+  if (!authState.isAuthenticated) {
     window.location.href = './index.html';
     return false;
   }
 
-  const meResponse = await fetch(`${apiBaseUrl}/api/me`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!meResponse.ok) {
+  if (!authState.me) {
     window.location.href = './index.html';
     return false;
   }
 
-  const me = await meResponse.json();
-  if (me.role !== 'admin') {
+  if (!authState.isAdmin) {
     setMessage('Admin access required.', true);
     productForm.hidden = true;
     return false;
@@ -128,7 +103,16 @@ async function init() {
     return;
   }
 
-  await createAuthClient();
+  const navbar = await window.CadeauAuth.initNavbar({
+    logoutRedirect: './index.html',
+    onLogoutError(error) {
+      setMessage(error.message, true);
+    },
+    onNavbarError(error) {
+      setMessage(error.message, true);
+    },
+  });
+  authClient = navbar.client;
   const allowed = await requireAdminSession();
   if (!allowed) return;
   await loadProduct();

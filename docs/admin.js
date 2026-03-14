@@ -1,5 +1,4 @@
-const appConfig = window.APP_CONFIG || {};
-const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBaseUrl = window.CadeauAuth.apiBaseUrl;
 const apiBase = `${apiBaseUrl}/api/products`;
 
 const authMessage = document.getElementById('authMessage');
@@ -8,7 +7,6 @@ const productForm = document.getElementById('productForm');
 const message = document.getElementById('message');
 const productsGrid = document.getElementById('productsGrid');
 const refreshBtn = document.getElementById('refreshBtn');
-const logoutBtn = document.getElementById('logoutBtn');
 
 const nameInput = document.getElementById('name');
 const descriptionInput = document.getElementById('description');
@@ -16,7 +14,6 @@ const priceInput = document.getElementById('price');
 const imageUrlInput = document.getElementById('image_url');
 const stockInput = document.getElementById('stock');
 
-let authClient;
 let accessToken = '';
 
 function setAuthMessage(text, isError = false) {
@@ -56,51 +53,27 @@ function createProductCard(product) {
   return card;
 }
 
-async function createAuthClient() {
-  let supabaseClientUrl = appConfig.SUPABASE_URL;
-  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
-
-  if (!supabaseClientUrl || !supabaseClientAnonKey) {
-    const response = await fetch(`${apiBaseUrl}/api/config`);
-    const config = await response.json();
-    if (!response.ok) {
-      throw new Error(config.error || 'Failed to load auth config');
-    }
-    supabaseClientUrl = config.supabaseUrl;
-    supabaseClientAnonKey = config.supabaseAnonKey;
-  }
-
-  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
-}
-
 async function requireAdminSession() {
-  const { data } = await authClient.auth.getSession();
-  accessToken = data.session?.access_token || '';
+  const authState = await window.CadeauAuth.syncNavbar();
+  accessToken = authState.token;
 
-  if (!accessToken) {
+  if (!authState.isAuthenticated) {
     window.location.href = './index.html';
     return false;
   }
 
-  const meResponse = await fetch(`${apiBaseUrl}/api/me`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!meResponse.ok) {
+  if (!authState.me) {
     window.location.href = './index.html';
     return false;
   }
 
-  const me = await meResponse.json();
-  if (me.role !== 'admin') {
+  if (!authState.isAdmin) {
     setAuthMessage('You are signed in, but your account is not an admin.', true);
     manageSection.hidden = true;
     return false;
   }
 
-  setAuthMessage(`Admin access granted for ${me.email}.`);
+  setAuthMessage(`Admin access granted for ${authState.me.email}.`);
   manageSection.hidden = false;
   return true;
 }
@@ -203,17 +176,16 @@ refreshBtn.addEventListener('click', async () => {
   }
 });
 
-logoutBtn.addEventListener('click', async () => {
-  const { error } = await authClient.auth.signOut({ scope: 'local' });
-  if (error) {
-    setAuthMessage(error.message, true);
-    return;
-  }
-  window.location.href = './index.html';
-});
-
 async function init() {
-  await createAuthClient();
+  await window.CadeauAuth.initNavbar({
+    logoutRedirect: './index.html',
+    onLogoutError(error) {
+      setAuthMessage(error.message, true);
+    },
+    onNavbarError(error) {
+      setAuthMessage(error.message, true);
+    },
+  });
 
   const allowed = await requireAdminSession();
   if (!allowed) return;

@@ -1,14 +1,10 @@
-const appConfig = window.APP_CONFIG || {};
-const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBaseUrl = window.CadeauAuth.apiBaseUrl;
 const apiBase = `${apiBaseUrl}/api/products`;
 
 const message = document.getElementById('message');
 const authMessage = document.getElementById('authMessage');
 const productsGrid = document.getElementById('productsGrid');
 const refreshBtn = document.getElementById('refreshBtn');
-const signinLink = document.getElementById('signinLink');
-const logoutBtn = document.getElementById('logoutBtn');
-const adminLink = document.getElementById('adminLink');
 
 let authClient;
 
@@ -72,72 +68,42 @@ async function fetchProducts() {
   }
 }
 
-async function createAuthClient() {
-  let supabaseClientUrl = appConfig.SUPABASE_URL;
-  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
-
-  if (!supabaseClientUrl || !supabaseClientAnonKey) {
-    const response = await fetch(`${apiBaseUrl}/api/config`);
-    const config = await response.json();
-    if (!response.ok) {
-      throw new Error(config.error || 'Failed to load auth config');
-    }
-    supabaseClientUrl = config.supabaseUrl;
-    supabaseClientAnonKey = config.supabaseAnonKey;
-  }
-
-  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
-}
-
 async function loadCurrentUser() {
-  const { data } = await authClient.auth.getSession();
-  const token = data.session?.access_token;
+  const authState = await window.CadeauAuth.syncNavbar();
 
-  if (!token) {
-    signinLink.hidden = false;
-    logoutBtn.hidden = true;
-    adminLink.hidden = true;
+  if (!authState.isAuthenticated) {
     setAuthMessage('You are browsing as a guest.');
     return;
   }
 
-  signinLink.hidden = true;
-  logoutBtn.hidden = false;
-
   const response = await fetch(`${apiBaseUrl}/api/me`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${authState.token}`,
     },
   });
 
   if (!response.ok) {
-    adminLink.hidden = true;
     setAuthMessage('Signed in.');
     return;
   }
 
   const me = await response.json();
-  adminLink.hidden = me.role !== 'admin';
   setAuthMessage(`Signed in as ${me.email} (${me.role}).`);
 }
-
-logoutBtn.addEventListener('click', async () => {
-  const { error } = await authClient.auth.signOut({ scope: 'local' });
-  if (error) {
-    setAuthMessage(error.message, true);
-    return;
-  }
-
-  signinLink.hidden = false;
-  logoutBtn.hidden = true;
-  adminLink.hidden = true;
-  setAuthMessage('Logged out.');
-});
 
 refreshBtn.addEventListener('click', fetchProducts);
 
 async function init() {
-  await createAuthClient();
+  const { client } = await window.CadeauAuth.initNavbar({
+    logoutRedirect: './index.html',
+    onLogoutError(error) {
+      setAuthMessage(error.message, true);
+    },
+    onNavbarError(error) {
+      setAuthMessage(error.message, true);
+    },
+  });
+  authClient = client;
   await loadCurrentUser();
   await fetchProducts();
 
