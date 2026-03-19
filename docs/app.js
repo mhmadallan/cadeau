@@ -93,6 +93,9 @@ async function loadCurrentUser() {
 
 refreshBtn.addEventListener('click', fetchProducts);
 
+// Fetch products immediately — no auth required for public listing
+fetchProducts();
+
 async function init() {
   const { client } = await window.CadeauAuth.initNavbar({
     logoutRedirect: './index.html',
@@ -105,7 +108,6 @@ async function init() {
   });
   authClient = client;
   await loadCurrentUser();
-  await fetchProducts();
 
   authClient.auth.onAuthStateChange(async () => {
     await loadCurrentUser();
