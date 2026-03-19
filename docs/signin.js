@@ -1,7 +1,6 @@
 const form = document.getElementById('signinForm');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
-const googleBtn = document.getElementById('googleBtn');
 const message = document.getElementById('message');
 
 const apiBaseUrl = window.CadeauAuth.apiBaseUrl;
@@ -22,21 +21,6 @@ form.addEventListener('submit', async (event) => {
     const { error } = await authClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
     window.location.href = './index.html';
-  } catch (error) {
-    setMessage(error.message, true);
-  }
-});
-
-googleBtn.addEventListener('click', async () => {
-  try {
-    const redirectTo = new URL('./index.html', window.location.href).toString();
-    const { error } = await authClient.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-      },
-    });
-    if (error) throw error;
   } catch (error) {
     setMessage(error.message, true);
   }
