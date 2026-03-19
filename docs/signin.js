@@ -3,8 +3,6 @@ const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const message = document.getElementById('message');
 
-const apiBaseUrl = window.CadeauAuth.apiBaseUrl;
-
 let authClient;
 
 function setMessage(text, isError = false) {
@@ -27,21 +25,34 @@ form.addEventListener('submit', async (event) => {
 });
 
 async function init() {
-  await window.CadeauAuth.initNavbar({
-    logoutRedirect: './index.html',
-    onLogoutError(error) {
-      setMessage(error.message, true);
-    },
-    onNavbarError(error) {
-      setMessage(error.message, true);
-    },
-  });
-  authClient = await window.CadeauAuth.createAuthClient();
+  if (window.CadeauAuth) {
+    await window.CadeauAuth.initNavbar({
+      logoutRedirect: './index.html',
+      onLogoutError(error) {
+        setMessage(error.message, true);
+      },
+      onNavbarError(error) {
+        setMessage(error.message, true);
+      },
+    });
+    authClient = await window.CadeauAuth.createAuthClient();
 
-  const authState = await window.CadeauAuth.getAuthState(authClient);
-  if (authState.isAuthenticated) {
-    window.location.href = './index.html';
+    const authState = await window.CadeauAuth.getAuthState(authClient);
+    if (authState.isAuthenticated) {
+      window.location.href = './index.html';
+    }
+    return;
   }
+
+  const config = window.APP_CONFIG || {};
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    throw new Error('Supabase client failed to load. Please disable content blockers and refresh.');
+  }
+  if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+    throw new Error('Missing auth configuration.');
+  }
+
+  authClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 }
 
 init().catch((error) => {

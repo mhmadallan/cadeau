@@ -25,6 +25,10 @@ async function fetchAuthConfig() {
 async function createAuthClient() {
   if (!authClientPromise) {
     authClientPromise = (async () => {
+      if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+        throw new Error('Supabase client failed to load. Please disable content blockers and refresh.');
+      }
+
       const { supabaseUrl, supabaseAnonKey } = await fetchAuthConfig();
       return window.supabase.createClient(supabaseUrl, supabaseAnonKey);
     })();
@@ -36,7 +40,7 @@ async function createAuthClient() {
 async function getAuthState(clientOverride) {
   const client = clientOverride || await createAuthClient();
   const { data } = await client.auth.getSession();
-  const token = data.session?.access_token || '';
+  const token = (data && data.session && data.session.access_token) || '';
 
   if (!token) {
     return {
@@ -69,7 +73,7 @@ async function getAuthState(clientOverride) {
     token,
     me,
     isAuthenticated: true,
-    isAdmin: me?.role === 'admin',
+    isAdmin: !!(me && me.role === 'admin'),
   };
 }
 
@@ -97,7 +101,7 @@ function applyNavbarState(authState) {
   }
 
   if (navUser) {
-    navUser.textContent = authState.me?.email || 'Guest';
+    navUser.textContent = (authState.me && authState.me.email) || 'Guest';
   }
 }
 
