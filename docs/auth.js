@@ -25,10 +25,6 @@ async function fetchAuthConfig() {
 async function createAuthClient() {
   if (!authClientPromise) {
     authClientPromise = (async () => {
-      if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-        throw new Error('Supabase client failed to load. Please disable content blockers and refresh.');
-      }
-
       const { supabaseUrl, supabaseAnonKey } = await fetchAuthConfig();
       return window.supabase.createClient(supabaseUrl, supabaseAnonKey);
     })();
