@@ -1,6 +1,4 @@
-const authApiBaseUrl = window.CadeauAuth && window.CadeauAuth.apiBaseUrl;
-const configApiBaseUrl = window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL;
-const apiBaseUrl = (authApiBaseUrl || configApiBaseUrl || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBaseUrl = (window.CadeauAuth && window.CadeauAuth.apiBaseUrl) || (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:4000';
 const apiBase = `${apiBaseUrl}/api/products`;
 
 const message = document.getElementById('message');
@@ -32,10 +30,10 @@ function createProductCard(product) {
     ${image}
     <div class="p-4">
       <h3 class="text-lg font-semibold">${product.name}</h3>
-      <p class="mt-1 text-sm text-slate-600 min-h-10">${product.description || ''}</p>
+      <p class="mt-1 text-sm text-slate-600 min-h-10">${product.description ?? ''}</p>
       <div class="mt-3 flex items-center justify-between text-sm">
         <span class="font-medium text-emerald-700">$${Number(product.price).toFixed(2)}</span>
-        <span class="rounded-full bg-slate-100 px-2 py-1 text-slate-700">Stock: ${product.stock || 0}</span>
+        <span class="rounded-full bg-slate-100 px-2 py-1 text-slate-700">Stock: ${product.stock ?? 0}</span>
       </div>
     </div>
   `;
@@ -71,11 +69,6 @@ async function fetchProducts() {
 }
 
 async function loadCurrentUser() {
-  if (!window.CadeauAuth) {
-    setAuthMessage('Auth is temporarily unavailable. Product browsing still works.');
-    return;
-  }
-
   const authState = await window.CadeauAuth.syncNavbar();
 
   if (!authState.isAuthenticated) {
@@ -83,32 +76,31 @@ async function loadCurrentUser() {
     return;
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/me`, {
-    headers: {
-      Authorization: `Bearer ${authState.token}`,
-    },
-  });
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/me`, {
+      headers: {
+        Authorization: `Bearer ${authState.token}`,
+      },
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      setAuthMessage('Signed in.');
+      return;
+    }
+
+    const me = await response.json();
+    setAuthMessage(`Signed in as ${me.email} (${me.role}).`);
+  } catch (_error) {
     setAuthMessage('Signed in.');
-    return;
   }
-
-  const me = await response.json();
-  setAuthMessage(`Signed in as ${me.email} (${me.role}).`);
 }
 
 refreshBtn.addEventListener('click', fetchProducts);
 
-// Fetch products immediately — no auth required for public listing
+// Products are public; load them immediately and independently of auth checks.
 fetchProducts();
 
 async function init() {
-  if (!window.CadeauAuth) {
-    setAuthMessage('Auth is temporarily unavailable. Product browsing still works.');
-    return;
-  }
-
   const { client } = await window.CadeauAuth.initNavbar({
     logoutRedirect: './index.html',
     onLogoutError(error) {
