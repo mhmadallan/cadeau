@@ -57,10 +57,14 @@ async function getAuthState(clientOverride) {
       },
     });
 
-    if (response.ok) {
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.error(`Failed to fetch user profile: HTTP ${response.status}`, error);
+    } else {
       me = await response.json();
     }
-  } catch (_error) {
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
     me = null;
   }
 

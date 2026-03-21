@@ -48,11 +48,13 @@ async function fetchProducts() {
   setMessage('Loading products...');
   try {
     const response = await fetch(apiBase);
-    const products = await response.json();
 
     if (!response.ok) {
-      throw new Error(products.error || 'Failed to fetch products');
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Failed to fetch products (HTTP ${response.status})`);
     }
+
+    const products = await response.json();
 
     productsGrid.innerHTML = '';
     if (!products.length) {
