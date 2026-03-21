@@ -37,49 +37,54 @@ async function createAuthClient() {
   return authClientPromise;
 }
 
-async function getAuthState(clientOverride) {
+async function getSessionOnlyState(clientOverride) {
   const client = clientOverride || await createAuthClient();
   const { data } = await client.auth.getSession();
   const token = (data && data.session && data.session.access_token) || '';
   const sessionUser = (data && data.session && data.session.user) || null;
 
-  if (!token) {
-    return {
-      client,
-      token: '',
-      me: null,
-      sessionUser: null,
-      isAuthenticated: false,
-      isAdmin: false,
-    };
+  return {
+    client,
+    token,
+    me: null,
+    sessionUser,
+    isAuthenticated: !!token,
+    isAdmin: false,
+  };
+}
+
+async function getAuthState(clientOverride) {
+  const sessionState = await getSessionOnlyState(clientOverride);
+
+  if (!sessionState.token) {
+    return sessionState;
   }
 
   let me = null;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(`${apiBaseUrl}/api/me`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${sessionState.token}`,
       },
+      signal: controller.signal,
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      console.error(`Failed to fetch user profile: HTTP ${response.status}`, error);
-    } else {
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
       me = await response.json();
     }
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    me = null;
+  } catch (_error) {
+    // timed out or failed — session email fallback applies
   }
 
   return {
-    client,
-    token,
+    ...sessionState,
     me,
-    sessionUser,
-    isAuthenticated: true,
     isAdmin: !!(me && me.role === 'admin'),
   };
 }
@@ -116,9 +121,12 @@ function applyNavbarState(authState) {
 
 async function syncNavbar(options = {}) {
   const client = await createAuthClient();
-  const authState = await getAuthState(client);
-  applyNavbarState(authState);
 
+  // Phase 1: apply session state immediately so email shows without waiting for /api/me
+  const sessionState = await getSessionOnlyState(client);
+  applyNavbarState(sessionState);
+
+  // Bind logout button immediately so it works during profile fetch
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn && !logoutBtn.dataset.bound) {
     logoutBtn.dataset.bound = 'true';
@@ -139,6 +147,11 @@ async function syncNavbar(options = {}) {
       window.location.href = options.logoutRedirect || './index.html';
     });
   }
+
+  // Phase 2: fetch /api/me (may be slow on Render cold start, has 8s timeout)
+  // Update navbar again once profile resolves to add admin link and role info
+  const authState = await getAuthState(client);
+  applyNavbarState(authState);
 
   return authState;
 }
