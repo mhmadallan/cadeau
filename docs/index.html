@@ -137,6 +137,51 @@
       }
 
       setTimeout(runFallbackFetch, 2200);
+
+      function refreshAuthDisplay() {
+        var appConfig = window.APP_CONFIG || {};
+        var apiBase = (appConfig.API_BASE_URL || '').replace(/\/+$/, '');
+        var supabaseUrl = appConfig.SUPABASE_URL;
+
+        if (!apiBase || !supabaseUrl) {
+          return;
+        }
+
+        var sessionKey = 'sb_' + supabaseUrl.split('.')[0].split('//')[1].split('-')[0] + '_auth_token';
+        var storedSession = null;
+
+        try {
+          storedSession = localStorage.getItem(sessionKey) || localStorage.getItem('sb-auth-token');
+        } catch (_e) {}
+
+        if (storedSession) {
+          try {
+            var parsed = JSON.parse(storedSession);
+            var token = parsed.access_token || parsed.token || '';
+
+            if (token) {
+              fetch(apiBase + '/api/me', {
+                headers: { Authorization: 'Bearer ' + token },
+              })
+                .then(function (r) {
+                  return r.json().catch(function () {
+                    return {};
+                  });
+                })
+                .then(function (data) {
+                  if (data && data.email) {
+                    var navUser = document.getElementById('navUser');
+                    if (navUser) {
+                      navUser.textContent = data.email + ' (' + (data.role || 'user') + ')';
+                    }
+                  }
+                });
+            }
+          } catch (_e) {}
+        }
+      }
+
+      setTimeout(refreshAuthDisplay, 1000);
     })();
   </script>
 </body>
