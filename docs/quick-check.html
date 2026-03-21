@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadeau Quick Check</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900">
+  <main class="mx-auto max-w-3xl px-4 py-8">
+    <h1 class="text-2xl font-bold">Cadeau Quick Check</h1>
+    <p class="mt-2 text-sm text-slate-600">Minimal page: only checks API and prints data.</p>
+
+    <section class="mt-6 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+      <p class="text-sm"><span class="font-semibold">API:</span> <span id="api"></span></p>
+      <p id="status" class="mt-3 text-sm text-slate-700">Starting...</p>
+      <button id="retry" class="mt-3 rounded bg-slate-900 px-3 py-1.5 text-sm text-white">Retry</button>
+    </section>
+
+    <section class="mt-6 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+      <h2 class="text-lg font-semibold">Raw JSON</h2>
+      <pre id="raw" class="mt-3 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-3 text-xs"></pre>
+    </section>
+  </main>
+
+  <script src="./config.js?v=20260321c"></script>
+  <script>
+    (function () {
+      var apiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL ? window.APP_CONFIG.API_BASE_URL : '').replace(/\/+$/, '');
+      var api = apiBase + '/api/products';
+      var apiEl = document.getElementById('api');
+      var statusEl = document.getElementById('status');
+      var rawEl = document.getElementById('raw');
+      var retryBtn = document.getElementById('retry');
+
+      apiEl.textContent = api || '(missing API_BASE_URL)';
+
+      function setStatus(text, isError) {
+        statusEl.textContent = text;
+        statusEl.className = 'mt-3 text-sm ' + (isError ? 'text-red-600' : 'text-slate-700');
+      }
+
+      function run() {
+        if (!apiBase) {
+          setStatus('Missing API_BASE_URL in config.js', true);
+          rawEl.textContent = '';
+          return;
+        }
+
+        var started = Date.now();
+        setStatus('Loading...', false);
+
+        fetch(api)
+          .then(function (response) {
+            return response.text().then(function (text) {
+              var elapsed = Date.now() - started;
+              rawEl.textContent = text;
+
+              if (!response.ok) {
+                setStatus('Failed: HTTP ' + response.status + ' in ' + elapsed + 'ms', true);
+                return;
+              }
+
+              try {
+                var parsed = JSON.parse(text);
+                var count = Array.isArray(parsed) ? parsed.length : 0;
+                setStatus('Success: HTTP 200 in ' + elapsed + 'ms, count=' + count, false);
+              } catch (_error) {
+                setStatus('Success: HTTP 200 in ' + elapsed + 'ms (non-JSON body)', false);
+              }
+            });
+          })
+          .catch(function (error) {
+            setStatus('Network error: ' + error.message, true);
+            rawEl.textContent = '';
+          });
+      }
+
+      retryBtn.addEventListener('click', run);
+      run();
+    })();
+  </script>
+</body>
+</html>
