@@ -41,12 +41,14 @@ async function getAuthState(clientOverride) {
   const client = clientOverride || await createAuthClient();
   const { data } = await client.auth.getSession();
   const token = (data && data.session && data.session.access_token) || '';
+  const sessionUser = (data && data.session && data.session.user) || null;
 
   if (!token) {
     return {
       client,
       token: '',
       me: null,
+      sessionUser: null,
       isAuthenticated: false,
       isAdmin: false,
     };
@@ -76,6 +78,7 @@ async function getAuthState(clientOverride) {
     client,
     token,
     me,
+    sessionUser,
     isAuthenticated: true,
     isAdmin: !!(me && me.role === 'admin'),
   };
@@ -105,7 +108,9 @@ function applyNavbarState(authState) {
   }
 
   if (navUser) {
-    navUser.textContent = (authState.me && authState.me.email) || 'Guest';
+    navUser.textContent = (authState.me && authState.me.email)
+      || (authState.sessionUser && authState.sessionUser.email)
+      || 'Guest';
   }
 }
 

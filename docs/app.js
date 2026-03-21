@@ -100,14 +100,16 @@ async function loadCurrentUser() {
     });
 
     if (!response.ok) {
-      setAuthMessage('Signed in.');
+      const sessionEmail = authState && authState.sessionUser && authState.sessionUser.email;
+      setAuthMessage(sessionEmail ? `Signed in as ${sessionEmail}.` : 'Signed in.');
       return;
     }
 
     const me = await response.json();
     setAuthMessage(`Signed in as ${me.email} (${me.role}).`);
   } catch (_error) {
-    setAuthMessage('Signed in.');
+    const sessionEmail = authState && authState.sessionUser && authState.sessionUser.email;
+    setAuthMessage(sessionEmail ? `Signed in as ${sessionEmail}.` : 'Signed in.');
   }
 }
 
