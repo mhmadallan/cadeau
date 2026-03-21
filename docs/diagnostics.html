@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadeau Diagnostics</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900">
+  <main class="mx-auto max-w-3xl px-4 py-8">
+    <h1 class="text-2xl font-bold">Cadeau Diagnostics</h1>
+    <p class="mt-2 text-sm text-slate-600">No DevTools required. This page checks production connectivity from your browser.</p>
+
+    <div class="mt-6 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+      <p class="text-sm"><span class="font-semibold">API base URL:</span> <span id="apiBase" class="text-slate-700"></span></p>
+      <button id="runBtn" class="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-700">Run checks</button>
+      <p id="summary" class="mt-3 text-sm text-slate-700"></p>
+    </div>
+
+    <section class="mt-6 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+      <h2 class="text-lg font-semibold">Checks</h2>
+      <ul id="results" class="mt-3 space-y-2 text-sm"></ul>
+    </section>
+  </main>
+
+  <script src="./config.js"></script>
+  <script>
+    const configuredApiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || '';
+    const apiBase = configuredApiBase.replace(/\/+$/, '');
+    const apiBaseEl = document.getElementById('apiBase');
+    const runBtn = document.getElementById('runBtn');
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    apiBaseEl.textContent = apiBase || '(missing API_BASE_URL in config.js)';
+
+    function addResult(label, ok, detail) {
+      const li = document.createElement('li');
+      li.className = ok ? 'text-emerald-700' : 'text-red-600';
+      li.textContent = `${ok ? 'PASS' : 'FAIL'} - ${label}: ${detail}`;
+      results.appendChild(li);
+      return ok;
+    }
+
+    async function timedFetch(url, options) {
+      const started = performance.now();
+      const response = await fetch(url, options);
+      const elapsedMs = Math.round(performance.now() - started);
+      return { response, elapsedMs };
+    }
+
+    async function runChecks() {
+      results.innerHTML = '';
+      summary.textContent = 'Running checks...';
+
+      if (!apiBase) {
+        addResult('API base config', false, 'API_BASE_URL is missing in docs/config.js');
+        summary.textContent = 'Diagnostics failed early.';
+        return;
+      }
+
+      let passCount = 0;
+      let totalCount = 0;
+
+      totalCount += 1;
+      try {
+        const { response, elapsedMs } = await timedFetch(`${apiBase}/api/health`);
+        const body = await response.json().catch(() => ({}));
+        const ok = response.ok && body && body.ok === true;
+        if (addResult('Health endpoint', ok, `HTTP ${response.status}, ${elapsedMs}ms`)) passCount += 1;
+      } catch (error) {
+        addResult('Health endpoint', false, error.message);
+      }
+
+      totalCount += 1;
+      try {
+        const { response, elapsedMs } = await timedFetch(`${apiBase}/api/products`);
+        const body = await response.json().catch(() => []);
+        const count = Array.isArray(body) ? body.length : 0;
+        const ok = response.ok;
+        if (addResult('Products endpoint', ok, `HTTP ${response.status}, ${elapsedMs}ms, count=${count}`)) passCount += 1;
+      } catch (error) {
+        addResult('Products endpoint', false, error.message);
+      }
+
+      totalCount += 1;
+      try {
+        const { response } = await timedFetch(`${apiBase}/api/health`, {
+          headers: { Origin: window.location.origin },
+        });
+        const allowOrigin = response.headers.get('access-control-allow-origin');
+        const ok = !!allowOrigin;
+        if (addResult('CORS header present', ok, allowOrigin || 'No Access-Control-Allow-Origin header')) passCount += 1;
+      } catch (error) {
+        addResult('CORS header present', false, error.message);
+      }
+
+      summary.textContent = `Completed ${totalCount} checks: ${passCount} passed, ${totalCount - passCount} failed.`;
+    }
+
+    runBtn.addEventListener('click', runChecks);
+    runChecks();
+  </script>
+</body>
+</html>
