@@ -8,14 +8,14 @@ const app = express();
 const port = Number(process.env.PORT || 4000);
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const corsOrigins = (process.env.CORS_ORIGINS || '')
+const defaultCorsOrigins = ['https://mhmadallan.github.io'];
+const corsOrigins = (process.env.CORS_ORIGINS || defaultCorsOrigins.join(','))
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-if (!corsOrigins.length) {
-  console.error('CORS_ORIGINS must be set to allowed frontend origin(s), for example: https://mhmadallan.github.io');
-  process.exit(1);
+if (!process.env.CORS_ORIGINS) {
+  console.warn('CORS_ORIGINS is not set. Falling back to https://mhmadallan.github.io');
 }
 
 app.use(cors({

@@ -41,7 +41,7 @@ This repository is configured to run in production with:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_ANON_KEY`
-   - `CORS_ORIGINS` (comma-separated), example:
+  - `CORS_ORIGINS` (comma-separated). Default blueprint value:
      - `https://mhmadallan.github.io`
 6. Deploy.
 
