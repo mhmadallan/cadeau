@@ -13,6 +13,10 @@ const refreshBtn = document.getElementById('refreshBtn');
 
 let authClient;
 
+function formatDiagnostics(text) {
+  return `${text} API: ${apiBase}`;
+}
+
 function setMessage(text, isError = false) {
   message.textContent = text || '';
   message.className = `mb-4 text-sm ${isError ? 'text-red-600' : 'text-slate-600'}`;
@@ -50,13 +54,15 @@ function createProductCard(product) {
 }
 
 async function fetchProducts() {
-  setMessage('Loading products...');
+  const requestStartedAt = performance.now();
+  setMessage(formatDiagnostics('Loading products...'));
   try {
     const response = await fetch(apiBase);
+    const elapsedMs = Math.round(performance.now() - requestStartedAt);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || `Failed to fetch products (HTTP ${response.status})`);
+      throw new Error(`${error.error || `Failed to fetch products (HTTP ${response.status})`} after ${elapsedMs}ms`);
     }
 
     const products = await response.json();
@@ -64,7 +70,7 @@ async function fetchProducts() {
     productsGrid.innerHTML = '';
     if (!products.length) {
       productsGrid.innerHTML = '<p class="text-slate-600">No products available yet.</p>';
-      setMessage('No products found.');
+      setMessage(formatDiagnostics(`Request succeeded in ${elapsedMs}ms. No products found.`));
       return;
     }
 
@@ -72,9 +78,9 @@ async function fetchProducts() {
       productsGrid.appendChild(createProductCard(product));
     });
 
-    setMessage(`Loaded ${products.length} product(s).`);
+    setMessage(formatDiagnostics(`Request succeeded in ${elapsedMs}ms. Loaded ${products.length} product(s).`));
   } catch (error) {
-    setMessage(error.message, true);
+    setMessage(formatDiagnostics(error.message), true);
   }
 }
 
