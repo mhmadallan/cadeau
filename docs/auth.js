@@ -1,5 +1,9 @@
 const cadeauAuthConfig = window.APP_CONFIG || {};
-const apiBaseUrl = (cadeauAuthConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const apiBaseUrl = (cadeauAuthConfig.API_BASE_URL || '').replace(/\/+$/, '');
+
+if (!apiBaseUrl) {
+  throw new Error('Missing API_BASE_URL in config.js');
+}
 
 let authClientPromise;
 

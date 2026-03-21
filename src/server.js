@@ -13,13 +13,18 @@ const corsOrigins = (process.env.CORS_ORIGINS || '')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+if (!corsOrigins.length) {
+  console.error('CORS_ORIGINS must be set to allowed frontend origin(s), for example: https://mhmadallan.github.io');
+  process.exit(1);
+}
+
 app.use(cors({
   origin(origin, callback) {
     if (!origin) {
       return callback(null, true);
     }
 
-    if (!corsOrigins.length || corsOrigins.includes(origin)) {
+    if (corsOrigins.includes(origin)) {
       return callback(null, true);
     }
 
@@ -108,6 +113,14 @@ app.get('/api/config', (_req, res) => {
   return res.json({
     supabaseUrl,
     supabaseAnonKey,
+  });
+});
+
+app.get('/api/health', (_req, res) => {
+  return res.json({
+    ok: true,
+    service: 'cadeau-api',
+    allowedOrigins: corsOrigins,
   });
 });
 
@@ -219,7 +232,11 @@ app.delete('/api/products/:id', requireAdmin, async (req, res) => {
 });
 
 app.get('/', (_req, res) => {
-  res.json({ ok: true, service: 'cadeau-api' });
+  res.json({
+    ok: true,
+    service: 'cadeau-api',
+    health: '/api/health',
+  });
 });
 
 app.listen(port, () => {

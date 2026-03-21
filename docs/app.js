@@ -1,4 +1,9 @@
-const apiBaseUrl = (window.CadeauAuth && window.CadeauAuth.apiBaseUrl) || (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:4000';
+const apiBaseUrl = (window.CadeauAuth && window.CadeauAuth.apiBaseUrl) || (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL);
+
+if (!apiBaseUrl) {
+  throw new Error('Missing API_BASE_URL in config.js');
+}
+
 const apiBase = `${apiBaseUrl}/api/products`;
 
 const message = document.getElementById('message');

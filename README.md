@@ -25,57 +25,52 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_ANON_KEY=your-anon-publishable-key
 ```
 
-## 3) Local development
+## 3) Deployment-first setup (Render + GitHub Pages)
 
-Terminal 1:
-```bash
-npm run css:watch
-```
+This repository is configured to run in production with:
+- Backend on Render (from `render.yaml`)
+- Frontend on GitHub Pages (from `docs/` via workflow)
 
-Terminal 2:
-```bash
-npm run dev
-```
+### Backend on Render
 
-Open frontend from `public/` (for example with VSCode Live Server), and keep:
-- `public/config.js` -> `API_BASE_URL: 'http://localhost:4000'`
+1. Push this repository to GitHub.
+2. In Render dashboard, click `New` -> `Blueprint`.
+3. Connect your GitHub account and select this repo: `mhmadallan/cadeau`.
+4. Render detects [`render.yaml`](./render.yaml) and creates the web service.
+5. In Render environment variables, set:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_ANON_KEY`
+   - `CORS_ORIGINS` (comma-separated), example:
+     - `https://mhmadallan.github.io`
+6. Deploy.
+
+### Frontend on GitHub Pages
+
+1. In [`docs/config.js`](./docs/config.js), set:
+   - `API_BASE_URL` to your Render backend URL (for example `https://cadeau.onrender.com`)
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+2. Commit and push to `main`.
+3. In GitHub repo settings, open `Settings` -> `Pages` and set Source to `GitHub Actions`.
+4. The workflow [`.github/workflows/pages.yml`](./.github/workflows/pages.yml) deploys `docs/` automatically.
+
+After this setup, backend and frontend run from Render and GitHub Pages (not local machine).
+
+## 4) Runtime policy
+
+This project is intended to run only in deployed environments:
+- Backend: Render
+- Frontend: GitHub Pages
+
+The backend now requires `CORS_ORIGINS` to be explicitly configured and does not allow browser origins outside that allow-list.
 
 Auth and admin:
 - Users can sign up/sign in with email+password or Google.
 - Admin page: `admin.html`
 - Edit page is available from Admin page only.
-- Admin access is based on `public.profiles.role = 'admin'`.
+- Admin access is based on `profiles.role = 'admin'`.
 - New users are created with role `user` by default.
-
-## Deploy backend on Render (auto deploy from GitHub)
-
-1. Push this repository to GitHub (already done).
-2. In Render dashboard, click `New` -> `Blueprint`.
-3. Connect your GitHub account and select this repo: `mhmadallan/cadeau`.
-4. Render will detect [`render.yaml`](./render.yaml) and create the web service.
-5. In Render service environment variables, set:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `SUPABASE_ANON_KEY`
-   - `CORS_ORIGINS` (comma-separated), example:
-     - `https://mhmadallan.github.io/cadeau,http://localhost:5500`
-6. Deploy.
-
-After this one-time setup, every push to `main` auto-deploys backend on Render (`autoDeploy: true`).
-
-## Deploy frontend on GitHub Pages
-
-1. In [`public/config.js`](./public/config.js), set:
-   - `API_BASE_URL` to your Render backend URL (for example `https://cadeau.onrender.com`)
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-2. Commit and push.
-3. In GitHub repo settings:
-   - `Settings` -> `Pages`
-   - Source: `Deploy from a branch`
-   - Branch: `main`
-   - Folder: `/public`
-4. Save. GitHub will publish your frontend.
 
 Frontend pages:
 - `index.html`
