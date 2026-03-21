@@ -85,32 +85,17 @@ async function fetchProducts() {
 }
 
 async function loadCurrentUser() {
-  const authState = await window.CadeauAuth.syncNavbar();
+  const authState = await window.CadeauAuth.getAuthState();
 
   if (!authState.isAuthenticated) {
     setAuthMessage('You are browsing as a guest.');
     return;
   }
 
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/me`, {
-      headers: {
-        Authorization: `Bearer ${authState.token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const sessionEmail = authState && authState.sessionUser && authState.sessionUser.email;
-      setAuthMessage(sessionEmail ? `Signed in as ${sessionEmail}.` : 'Signed in.');
-      return;
-    }
-
-    const me = await response.json();
-    setAuthMessage(`Signed in as ${me.email} (${me.role}).`);
-  } catch (_error) {
-    const sessionEmail = authState && authState.sessionUser && authState.sessionUser.email;
-    setAuthMessage(sessionEmail ? `Signed in as ${sessionEmail}.` : 'Signed in.');
-  }
+  const email = (authState.me && authState.me.email)
+    || (authState.sessionUser && authState.sessionUser.email);
+  const role = authState.me && authState.me.role;
+  setAuthMessage(email ? `Signed in as ${email}${role ? ` (${role})` : ''}.` : 'Signed in.');
 }
 
 refreshBtn.addEventListener('click', fetchProducts);
