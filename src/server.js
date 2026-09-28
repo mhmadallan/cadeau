@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./supabase');
+const { createWhatsAppWebhook } = require('./whatsapp-webhook');
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -31,7 +32,6 @@ app.use(cors({
     return callback(new Error('Origin not allowed by CORS'));
   },
 }));
-app.use(express.json());
 
 let supabase;
 try {
@@ -40,6 +40,12 @@ try {
   console.error(error.message);
   process.exit(1);
 }
+
+// Meta signs the exact raw payload; register this before the JSON parser.
+const whatsappWebhook = createWhatsAppWebhook(supabase);
+app.get('/api/webhooks/whatsapp', whatsappWebhook.verify);
+app.post('/api/webhooks/whatsapp', express.raw({ type: 'application/json', limit: '1mb' }), whatsappWebhook.receive);
+app.use(express.json());
 
 const tableName = 'products';
 

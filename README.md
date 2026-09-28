@@ -1,5 +1,22 @@
 # Cadeau Store
 
+## WhatsApp delivery tracking
+
+Run `supabase/whatsapp-delivery-events.sql` in Supabase. Set
+`WHATSAPP_WEBHOOK_VERIFY_TOKEN`, `META_APP_SECRET`, and `WHATSAPP_PHONE_NUMBER_ID`
+in Render's environment. The app secret comes from Meta app Settings > Basic;
+it is not the WhatsApp access token.
+
+After deployment, configure Meta's callback URL as
+`https://cadeau-hbmt.onrender.com/api/webhooks/whatsapp`, use the same verification
+token, and subscribe to the `messages` field. Signed delivery events are saved in
+the private `whatsapp_delivery_events` table and logged with their numeric error
+codes. A new test after subscription is needed to diagnose delivery; historical
+events may not be replayed. This endpoint does not send messages.
+
+Run `node --test test/whatsapp-webhook.test.js` to test signatures, verification,
+duplicate events and persistence failures.
+
 Split deployment architecture:
 - Backend API: Node.js + Express + Supabase (host on Render)
 - Frontend: Vanilla JS + HTML + Tailwind CSS static files (host on GitHub Pages)
