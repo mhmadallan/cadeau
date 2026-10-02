@@ -1,4 +1,5 @@
-const apiBaseUrl = window.CadeauAuth.apiBaseUrl;
+const appConfig = window.APP_CONFIG || {};
+const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
 const apiBase = `${apiBaseUrl}/api/products`;
 
 const authMessage = document.getElementById('authMessage');
@@ -7,6 +8,7 @@ const productForm = document.getElementById('productForm');
 const message = document.getElementById('message');
 const productsGrid = document.getElementById('productsGrid');
 const refreshBtn = document.getElementById('refreshBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
 const nameInput = document.getElementById('name');
 const descriptionInput = document.getElementById('description');
@@ -14,6 +16,7 @@ const priceInput = document.getElementById('price');
 const imageUrlInput = document.getElementById('image_url');
 const stockInput = document.getElementById('stock');
 
+let authClient;
 let accessToken = '';
 
 function setAuthMessage(text, isError = false) {
@@ -53,33 +56,63 @@ function createProductCard(product) {
   return card;
 }
 
+async function createAuthClient() {
+  let supabaseClientUrl = appConfig.SUPABASE_URL;
+  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
+
+  if (!supabaseClientUrl || !supabaseClientAnonKey) {
+    const response = await fetch(`${apiBaseUrl}/api/config`);
+    const config = await response.json();
+    if (!response.ok) {
+      throw new Error(config.error || 'Failed to load auth config');
+    }
+    supabaseClientUrl = config.supabaseUrl;
+    supabaseClientAnonKey = config.supabaseAnonKey;
+  }
+
+  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
+}
+
 async function requireAdminSession() {
-  const authState = await window.CadeauAuth.syncNavbar();
-  accessToken = authState.token;
+  const { data } = await authClient.auth.getSession();
+  accessToken = data.session?.access_token || '';
 
-  if (!authState.isAuthenticated) {
+  if (!accessToken) {
     window.location.href = './index.html';
     return false;
   }
 
-  if (!authState.me) {
+  const meResponse = await fetch(`${apiBaseUrl}/api/me`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!meResponse.ok) {
     window.location.href = './index.html';
     return false;
   }
 
-  if (!authState.isAdmin) {
+  const me = await meResponse.json();
+  if (me.role !== 'admin') {
+    window.location.replace('./index.html');
     setAuthMessage('You are signed in, but your account is not an admin.', true);
     manageSection.hidden = true;
     return false;
   }
 
-  setAuthMessage(`Admin access granted for ${authState.me.email}.`);
+  setAuthMessage(`Admin access granted for ${me.email}.`);
   manageSection.hidden = false;
+  document.getElementById('protectedContent').hidden = false;
+  document.getElementById('accessMessage').hidden = true;
   return true;
 }
 
 async function fetchProducts() {
-  const response = await fetch(apiBase);
+  const { data } = await authClient.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) { window.location.replace('./signin.html'); return; }
+  const response = await fetch(apiBase, { headers: { Authorization: `Bearer ${token}` } });
   const products = await response.json();
 
   if (!response.ok) {
@@ -176,23 +209,26 @@ refreshBtn.addEventListener('click', async () => {
   }
 });
 
+logoutBtn.addEventListener('click', async () => {
+  const { error } = await authClient.auth.signOut({ scope: 'local' });
+  if (error) {
+    setAuthMessage(error.message, true);
+    return;
+  }
+  window.location.href = './index.html';
+});
+
 async function init() {
-  await window.CadeauAuth.initNavbar({
-    logoutRedirect: './index.html',
-    onLogoutError(error) {
-      setAuthMessage(error.message, true);
-    },
-    onNavbarError(error) {
-      setAuthMessage(error.message, true);
-    },
-  });
+  await createAuthClient();
 
   const allowed = await requireAdminSession();
   if (!allowed) return;
 
   await fetchProducts();
+  if (window.loadAccessRequests) await window.loadAccessRequests();
 }
 
 init().catch((error) => {
+  document.getElementById('accessMessage').textContent = error.message;
   setAuthMessage(error.message, true);
 });

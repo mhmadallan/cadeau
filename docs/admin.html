@@ -7,26 +7,8 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900">
-  <nav class="sticky top-0 z-20 border-b border-slate-200 bg-white">
-    <div class="mx-auto max-w-6xl px-4 py-3 md:px-5">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <a href="./index.html" class="text-xl font-extrabold tracking-tight text-slate-950">Cadeau</a>
-          <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Store management for admins.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 md:justify-end">
-          <span id="navUser" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">Guest</span>
-          <a href="./index.html" class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5 hover:bg-slate-50">Store</a>
-          <a id="adminLink" href="./admin.html" aria-current="page" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800" hidden>Admin</a>
-          <a id="signinLink" href="./signin.html" class="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-500">Login</a>
-          <a id="signupLink" href="./signup.html" class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5 hover:bg-slate-50">Sign Up</a>
-          <button id="logoutBtn" class="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:bg-slate-300" type="button" hidden>Logout</button>
-        </div>
-      </div>
-    </div>
-  </nav>
-
-  <main class="mx-auto max-w-6xl px-4 py-8">
+  <p id="accessMessage" role="status" class="p-4">Checking your sign-in...</p>
+  <main id="protectedContent" class="mx-auto max-w-6xl px-4 py-8" hidden>
     <header class="mb-8 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
       <div>
         <h1 class="text-3xl font-bold">Admin Panel</h1>
@@ -34,6 +16,7 @@
       </div>
       <div class="flex gap-2">
         <a href="./index.html" class="rounded-lg bg-white px-4 py-2 text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50">Back to Store</a>
+        <button id="logoutBtn" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-300" type="button">Logout</button>
       </div>
     </header>
 
@@ -81,11 +64,19 @@
       </div>
       <div id="productsGrid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
     </section>
+    <section class="mt-8 rounded-xl bg-white p-5 shadow-sm">
+      <h2 class="text-xl font-semibold">Customer access requests</h2>
+      <button id="refreshAccess" type="button" class="my-3 rounded-lg bg-slate-900 px-3 py-2 text-white">Refresh requests</button>
+      <p id="accessRequestStatus" role="status"></p>
+      <div id="accessRequests"></div>
+      <button id="accessPrevious" type="button" class="mr-4" disabled>Previous</button>
+      <button id="accessNext" type="button">Next</button>
+    </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="var s=document.createElement('script');s.src='https://unpkg.com/@supabase/supabase-js@2';document.head.appendChild(s);"></script>
-  <script src="./config.js?v=20260321c"></script>
-  <script src="./auth.js?v=20260321c"></script>
-  <script src="./admin.js?v=20260321c"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+  <script src="./admin.js?v=phone-access-1"></script>
+  <script src="./access-admin.js"></script>
 </body>
 </html>

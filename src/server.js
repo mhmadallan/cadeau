@@ -3,21 +3,18 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./supabase');
+const { createOrderHandler } = require('./orders');
 const { createWhatsAppWebhook } = require('./whatsapp-webhook');
+const { createCustomerAccess } = require('./customer-access');
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const defaultCorsOrigins = ['https://mhmadallan.github.io'];
-const corsOrigins = (process.env.CORS_ORIGINS || defaultCorsOrigins.join(','))
+const corsOrigins = (process.env.CORS_ORIGINS || 'https://mhmadallan.github.io')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
-
-if (!process.env.CORS_ORIGINS) {
-  console.warn('CORS_ORIGINS is not set. Falling back to https://mhmadallan.github.io');
-}
 
 app.use(cors({
   origin(origin, callback) {
@@ -25,7 +22,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    if (corsOrigins.includes(origin)) {
+    if (!corsOrigins.length || corsOrigins.includes(origin)) {
       return callback(null, true);
     }
 
@@ -41,13 +38,14 @@ try {
   process.exit(1);
 }
 
-// Meta signs the exact raw payload; register this before the JSON parser.
+// Signature verification must receive the exact raw body before the JSON parser.
 const whatsappWebhook = createWhatsAppWebhook(supabase);
 app.get('/api/webhooks/whatsapp', whatsappWebhook.verify);
 app.post('/api/webhooks/whatsapp', express.raw({ type: 'application/json', limit: '1mb' }), whatsappWebhook.receive);
 app.use(express.json());
 
 const tableName = 'products';
+const customerAccess = createCustomerAccess(supabase);
 
 function getBearerToken(req) {
   const authHeader = req.get('authorization') || '';
@@ -63,6 +61,8 @@ async function getUserWithRole(req) {
   if (!token) {
     return { error: 'Authentication required', status: 401 };
   }
+
+  if (token.startsWith('shop_')) return customerAccess.authenticate(token);
 
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) {
@@ -93,6 +93,7 @@ async function requireAuthenticatedUser(req, res, next) {
 
   req.user = result.user;
   req.userRole = result.role;
+  req.authType = result.authType || 'email';
   return next();
 }
 
@@ -122,14 +123,6 @@ app.get('/api/config', (_req, res) => {
   });
 });
 
-app.get('/api/health', (_req, res) => {
-  return res.json({
-    ok: true,
-    service: 'cadeau-api',
-    allowedOrigins: corsOrigins,
-  });
-});
-
 app.get('/api/me', requireAuthenticatedUser, (req, res) => {
   return res.json({
     id: req.user.id,
@@ -138,7 +131,15 @@ app.get('/api/me', requireAuthenticatedUser, (req, res) => {
   });
 });
 
-app.get('/api/products', async (_req, res) => {
+app.post('/api/access/request', customerAccess.rateLimit, customerAccess.request);
+app.post('/api/access/login', customerAccess.rateLimit, customerAccess.login);
+app.post('/api/access/logout', customerAccess.logout);
+app.get('/api/admin/access', requireAdmin, customerAccess.list);
+app.patch('/api/admin/access/:id', requireAdmin, customerAccess.decide);
+
+app.post('/api/orders', requireAuthenticatedUser, createOrderHandler(supabase));
+
+app.get('/api/products', requireAuthenticatedUser, async (_req, res) => {
   const { data, error } = await supabase
     .from(tableName)
     .select('*')
@@ -151,7 +152,7 @@ app.get('/api/products', async (_req, res) => {
   return res.json(data);
 });
 
-app.get('/api/products/:id', async (req, res) => {
+app.get('/api/products/:id', requireAuthenticatedUser, async (req, res) => {
   const { id } = req.params;
   const { data, error } = await supabase
     .from(tableName)
@@ -237,12 +238,10 @@ app.delete('/api/products/:id', requireAdmin, async (req, res) => {
   return res.status(204).send();
 });
 
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'cadeau-api' }));
+
 app.get('/', (_req, res) => {
-  res.json({
-    ok: true,
-    service: 'cadeau-api',
-    health: '/api/health',
-  });
+  res.json({ ok: true, service: 'cadeau-api' });
 });
 
 app.listen(port, () => {

@@ -6,7 +6,7 @@ services:
     autoDeploy: true
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /api/products
+    healthCheckPath: /
     envVars:
       - key: NODE_VERSION
         value: 22
@@ -16,11 +16,37 @@ services:
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
       - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
         sync: false
       - key: META_APP_SECRET
         sync: false
+      - key: WHATSAPP_ACCESS_REQUEST_TEMPLATE
+        sync: false
+      - key: WHATSAPP_ACCESS_APPROVED_TEMPLATE
+        sync: false
+      - key: WHATSAPP_ACCESS_TEMPLATE_LANGUAGE
+        value: en
+      - key: ORDER_NOTIFICATION_PROVIDER
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
-      - key: CORS_ORIGINS
-        value: https://mhmadallan.github.io
+      - key: WHATSAPP_RECIPIENT_NUMBER
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        sync: false
+      - key: WHATSAPP_TEMPLATE_NAME
+        value: cadeau_order_notification
+      - key: WHATSAPP_IMAGE_TEMPLATE_NAME
+        sync: false
+      - key: WHATSAPP_TEMPLATE_HEADER
+        sync: false
+      - key: WHATSAPP_TEMPLATE_LANGUAGE
+        value: en_US

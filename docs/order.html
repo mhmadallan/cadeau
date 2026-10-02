@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Place Order - Cadeau</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900">
+  <p id="accessMessage" role="status" class="p-4">Checking your sign-in...</p>
+  <main id="protectedContent" class="mx-auto max-w-xl px-4 py-8" hidden>
+    <a href="./index.html" class="text-emerald-700 underline">Back to store</a>
+    <h1 class="my-4 text-3xl font-bold">Place your order</h1>
+    <p id="productSummary" class="mb-4"></p>
+    <p id="orderMessage" role="status" aria-live="polite" class="my-4 text-sm"></p>
+    <a id="orderSignin" href="./signin.html" class="text-emerald-700 underline" hidden>Sign in to order</a>
+    <form id="orderForm" class="space-y-4 rounded-xl bg-white p-6 shadow-sm" hidden>
+      <fieldset id="orderFields" class="space-y-4">
+        <label class="block">Quantity
+          <input name="quantity" type="number" min="1" max="99" step="1" value="1" required class="mt-1 w-full rounded-lg border border-slate-300 p-2" />
+        </label>
+        <label class="block">Your name
+          <input name="customer_name" autocomplete="name" maxlength="100" required class="mt-1 w-full rounded-lg border border-slate-300 p-2" />
+        </label>
+        <label class="block">Phone number (with country code)
+          <input name="customer_phone" type="tel" autocomplete="tel" maxlength="30" required class="mt-1 w-full rounded-lg border border-slate-300 p-2" />
+        </label>
+        <label class="block">Delivery address
+          <textarea name="delivery_address" autocomplete="street-address" maxlength="300" rows="3" required class="mt-1 w-full rounded-lg border border-slate-300 p-2"></textarea>
+        </label>
+        <label class="block">Notes (optional)
+          <textarea name="notes" maxlength="300" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></textarea>
+        </label>
+      </fieldset>
+      <p id="orderTotal" class="font-semibold"></p>
+      <p class="text-sm text-slate-600">Your order and delivery details will be shared with the store through its configured messaging service. No payment is collected here; the store will contact you to arrange payment and delivery.</p>
+      <button id="placeOrder" type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-white disabled:opacity-50">Place order</button>
+    </form>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+  <script src="./customer-session.js"></script>
+  <script src="./order.js?v=phone-access-1"></script>
+</body>
+</html>

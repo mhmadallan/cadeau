@@ -1,13 +1,34 @@
 const form = document.getElementById('signinForm');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
+const googleBtn = document.getElementById('googleBtn');
 const message = document.getElementById('message');
+
+const appConfig = window.APP_CONFIG || {};
+const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
 
 let authClient;
 
 function setMessage(text, isError = false) {
   message.textContent = text || '';
   message.className = `mt-3 text-sm ${isError ? 'text-red-600' : 'text-emerald-700'}`;
+}
+
+async function createAuthClient() {
+  let supabaseClientUrl = appConfig.SUPABASE_URL;
+  let supabaseClientAnonKey = appConfig.SUPABASE_ANON_KEY;
+
+  if (!supabaseClientUrl || !supabaseClientAnonKey) {
+    const response = await fetch(`${apiBaseUrl}/api/config`);
+    const config = await response.json();
+    if (!response.ok) {
+      throw new Error(config.error || 'Failed to load auth config');
+    }
+    supabaseClientUrl = config.supabaseUrl;
+    supabaseClientAnonKey = config.supabaseAnonKey;
+  }
+
+  authClient = window.supabase.createClient(supabaseClientUrl, supabaseClientAnonKey);
 }
 
 form.addEventListener('submit', async (event) => {
@@ -18,41 +39,36 @@ form.addEventListener('submit', async (event) => {
     const password = passwordInput.value;
     const { error } = await authClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    localStorage.removeItem('cadeau-phone-session');
     window.location.href = './index.html';
   } catch (error) {
     setMessage(error.message, true);
   }
 });
 
-async function init() {
-  if (window.CadeauAuth) {
-    await window.CadeauAuth.initNavbar({
-      logoutRedirect: './index.html',
-      onLogoutError(error) {
-        setMessage(error.message, true);
-      },
-      onNavbarError(error) {
-        setMessage(error.message, true);
+googleBtn.addEventListener('click', async () => {
+  try {
+    const redirectTo = new URL('./index.html', window.location.href).toString();
+    const { error } = await authClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
       },
     });
-    authClient = await window.CadeauAuth.createAuthClient();
-
-    const authState = await window.CadeauAuth.getAuthState(authClient);
-    if (authState.isAuthenticated) {
-      window.location.href = './index.html';
-    }
-    return;
+    if (error) throw error;
+  } catch (error) {
+    setMessage(error.message, true);
   }
+});
 
-  const config = window.APP_CONFIG || {};
-  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-    throw new Error('Supabase client failed to load. Please disable content blockers and refresh.');
-  }
-  if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
-    throw new Error('Missing auth configuration.');
-  }
+async function init() {
+  await createAuthClient();
 
-  authClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  const { data } = await authClient.auth.getSession();
+  if (data.session) {
+    localStorage.removeItem('cadeau-phone-session');
+    window.location.href = './index.html';
+  }
 }
 
 init().catch((error) => {
