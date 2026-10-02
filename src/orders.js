@@ -1,5 +1,6 @@
 const { getNotificationConfig, notifyOrder } = require('./notifications');
 const { getImageLink } = require('./whatsapp');
+const { NotificationConfigError } = require('./notification-config-error');
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -38,7 +39,10 @@ function createOrderHandler(supabase, { getConfig = getNotificationConfig, notif
 
     let config;
     try { config = getConfig(); }
-    catch { return res.status(503).json({ error: 'Ordering is not configured yet. Please contact the store.' }); }
+    catch (error) {
+      console.error('Order notification configuration failed:', error instanceof NotificationConfigError ? error.message : 'Unexpected configuration error');
+      return res.status(503).json({ error: 'Ordering is not configured yet. Please contact the store.' });
+    }
 
     // Fail before reserving stock when Telegram's database migration is missing.
     if (config.provider === 'telegram') {

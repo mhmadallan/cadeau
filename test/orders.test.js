@@ -31,6 +31,20 @@ test('requires complete server-side configuration', () => {
   assert.throws(() => getWhatsAppConfig({ ...env, WHATSAPP_PHONE_NUMBER_ID: '../messages' }));
 });
 
+test('configuration trims pasted whitespace and reports only rejected field names', () => {
+  const env = { WHATSAPP_ACCESS_TOKEN: ' secret ', WHATSAPP_PHONE_NUMBER_ID: ' 123\n', WHATSAPP_RECIPIENT_NUMBER: ' 491234567890 ', WHATSAPP_API_VERSION: ' v99.0 ', WHATSAPP_TEMPLATE_NAME: ' order ' };
+  const result = getWhatsAppConfig(env);
+  assert.equal(result.token, 'secret');
+  assert.equal(result.phoneId, '123');
+  assert.equal(result.recipient, '491234567890');
+  assert.equal(result.version, 'v99.0');
+  assert.equal(result.template, 'order');
+  assert.throws(() => getWhatsAppConfig({ ...env, WHATSAPP_ACCESS_TOKEN: ' ', WHATSAPP_PHONE_NUMBER_ID: 'private-invalid-value' }), (error) => {
+    assert.equal(error.message, 'Missing or invalid notification settings: WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID');
+    return true;
+  });
+});
+
 test('sends the configured recipient all nine template parameters', async () => {
   const messageId = await sendOrderNotification(order, config, async (url, options) => {
     assert.equal(url, 'https://graph.facebook.com/v99.0/123/messages');

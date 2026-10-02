@@ -1,21 +1,25 @@
+const { NotificationConfigError } = require('./notification-config-error');
+
 function getWhatsAppConfig(env = process.env) {
+  const read = (key) => (env[key] || '').trim();
   const config = {
-    token: env.WHATSAPP_ACCESS_TOKEN,
-    phoneId: env.WHATSAPP_PHONE_NUMBER_ID,
-    recipient: env.WHATSAPP_RECIPIENT_NUMBER,
-    version: env.WHATSAPP_API_VERSION,
-    template: env.WHATSAPP_TEMPLATE_NAME,
-    language: env.WHATSAPP_TEMPLATE_LANGUAGE || 'en_US',
+    token: read('WHATSAPP_ACCESS_TOKEN'),
+    phoneId: read('WHATSAPP_PHONE_NUMBER_ID'),
+    recipient: read('WHATSAPP_RECIPIENT_NUMBER'),
+    version: read('WHATSAPP_API_VERSION'),
+    template: read('WHATSAPP_TEMPLATE_NAME'),
+    language: read('WHATSAPP_TEMPLATE_LANGUAGE') || 'en_US',
   };
-  if (Object.values(config).some((value) => !value)
-    || !/^\d+$/.test(config.phoneId)
-    || !/^[1-9]\d{6,14}$/.test(config.recipient)
-    || !/^v\d+\.\d+$/.test(config.version)) {
-    throw new Error('WhatsApp order notifications are not configured');
-  }
+  const invalid = [];
+  if (!config.token) invalid.push('WHATSAPP_ACCESS_TOKEN');
+  if (!/^\d+$/.test(config.phoneId)) invalid.push('WHATSAPP_PHONE_NUMBER_ID');
+  if (!/^[1-9]\d{6,14}$/.test(config.recipient)) invalid.push('WHATSAPP_RECIPIENT_NUMBER');
+  if (!/^v\d+\.\d+$/.test(config.version)) invalid.push('WHATSAPP_API_VERSION');
+  if (!config.template) invalid.push('WHATSAPP_TEMPLATE_NAME');
   config.imageTemplate = (env.WHATSAPP_IMAGE_TEMPLATE_NAME || '').trim();
   config.headerType = (env.WHATSAPP_TEMPLATE_HEADER || 'none').trim().toLowerCase();
-  if (!['none', 'image'].includes(config.headerType)) throw new Error('WHATSAPP_TEMPLATE_HEADER must be none or image');
+  if (!['none', 'image'].includes(config.headerType)) invalid.push('WHATSAPP_TEMPLATE_HEADER');
+  if (invalid.length) throw new NotificationConfigError(invalid);
   return config;
 }
 

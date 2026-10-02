@@ -1,9 +1,12 @@
+const { NotificationConfigError } = require('./notification-config-error');
+
 function getTelegramConfig(env = process.env) {
   const token = (env.TELEGRAM_BOT_TOKEN || '').trim();
   const chatId = (env.TELEGRAM_CHAT_ID || '').trim();
-  if (!/^\d+:[A-Za-z0-9_-]+$/.test(token) || !/^-?[1-9]\d*$/.test(chatId)) {
-    throw new Error('Telegram bot token and numeric chat ID must be configured');
-  }
+  const invalid = [];
+  if (!/^\d+:[A-Za-z0-9_-]+$/.test(token)) invalid.push('TELEGRAM_BOT_TOKEN');
+  if (!/^-?[1-9]\d*$/.test(chatId)) invalid.push('TELEGRAM_CHAT_ID');
+  if (invalid.length) throw new NotificationConfigError(invalid);
   return { token, chatId };
 }
 
