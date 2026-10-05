@@ -13,9 +13,9 @@ function getTelegramConfig(env = process.env) {
 function formatOrder(order) {
   return [
     `New Cadeau order: ${order.id}`,
-    `Product: ${String(order.product_name).slice(0, 500)}`,
-    `Quantity: ${order.quantity}`,
-    `Unit price: $${Number(order.unit_price).toFixed(2)}`,
+    `Product: ${String(order.items?.length ? order.items.map(i => `${i.product_name} / ${i.color || 'Standard'} / ${i.size || 'One size'} × ${i.quantity} — $${Number(i.total).toFixed(2)}`).join('; ') : String(order.product_name).slice(0, 500))}`,
+    `Quantity: ${order.items?.length ? order.items.reduce((n,i) => n+i.quantity,0) : order.quantity}`,
+    order.items?.length ? 'Unit prices are included in the item totals above.' : `Unit price: $${Number(order.unit_price).toFixed(2)}`,
     `Total: $${Number(order.total).toFixed(2)}`,
     `Customer: ${order.customer_name}`,
     `Phone: ${order.customer_phone}`,
@@ -56,23 +56,24 @@ async function sendTelegramOrder(order, config, fetchImpl = fetch) {
     const url = new URL(order.product_image_url);
     if (url.protocol === 'https:' && !url.username && !url.password) photo = url.href;
   } catch { /* Products without an image retain text notifications. */ }
+  const chunks = text.match(/[\s\S]{1,4000}/g) || [''];
   if (photo) {
     const fitsCaption = text.length <= 1024;
     const id = await telegramRequest('sendPhoto', {
       photo, caption: fitsCaption ? text : `Cadeau order: ${order.id}`,
     }, config, fetchImpl);
-    if (!fitsCaption) {
-      // Preserve all order details when they exceed Telegram's photo caption limit.
-      await telegramRequest('sendMessage', {
-        text, reply_parameters: { message_id: Number(id) },
-        link_preview_options: { is_disabled: true },
-      }, config, fetchImpl);
-    }
+    if (!fitsCaption) for (const chunk of chunks) await telegramRequest('sendMessage', {
+      text: chunk, reply_parameters: { message_id: Number(id) },
+      link_preview_options: { is_disabled: true },
+    }, config, fetchImpl);
     return id;
   }
-  return telegramRequest('sendMessage', {
-    text, link_preview_options: { is_disabled: true },
-  }, config, fetchImpl);
+  let firstId;
+  for (const chunk of chunks) {
+    const id = await telegramRequest('sendMessage', { text: chunk, link_preview_options: { is_disabled: true } }, config, fetchImpl);
+    firstId ||= id;
+  }
+  return firstId;
 }
 
 module.exports = { getTelegramConfig, formatOrder, sendTelegramOrder };

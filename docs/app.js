@@ -32,30 +32,19 @@ function setAuthMessage(text, isError = false) {
 
 function createProductCard(product) {
   const card = document.createElement('article');
-  card.className = 'overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200';
-
-  const image = product.image_url
-    ? `<img src="${product.image_url}" alt="${product.name}" class="h-44 w-full object-cover" />`
-    : '<div class="grid h-44 place-items-center bg-slate-200 text-slate-500">No image</div>';
-
-  card.innerHTML = `
-    ${image}
-    <div class="p-4">
-      <h3 class="text-lg font-semibold">${product.name}</h3>
-      <p class="mt-1 text-sm text-slate-600 min-h-10">${product.description ?? ''}</p>
-      <div class="mt-3 flex items-center justify-between text-sm">
-        <span class="font-medium text-emerald-700">$${Number(product.price).toFixed(2)}</span>
-        <span class="rounded-full bg-slate-100 px-2 py-1 text-slate-700">Stock: ${product.stock ?? 0}</span>
-      </div>
-    </div>
-  `;
-
-  const orderLink = document.createElement('a');
-  orderLink.className = 'm-4 mt-0 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500';
-  orderLink.textContent = Number(product.stock) > 0 ? 'Order product' : 'Out of stock';
-  if (Number(product.stock) > 0) orderLink.href = `./order.html?id=${encodeURIComponent(product.id)}`;
-  else orderLink.setAttribute('aria-disabled', 'true');
-  card.appendChild(orderLink);
+  card.className = 'product-card fade-in';
+  const link = document.createElement('a');
+  link.href = `./product.html?id=${encodeURIComponent(product.id)}`;
+  link.className = 'photo';
+  if (product.image_url) {
+    const img = document.createElement('img'); img.src = product.image_url; img.alt = product.name; img.loading = 'lazy'; link.appendChild(img);
+  } else link.textContent = 'Image coming soon';
+  card.appendChild(link);
+  const heading = document.createElement('h3'); heading.textContent = product.name; card.appendChild(heading);
+  const meta = document.createElement('div'); meta.className = 'meta';
+  const price = document.createElement('span'); price.textContent = `$${Number(product.price).toFixed(2)}`; meta.appendChild(price);
+  const collection = document.createElement('span'); collection.className = 'muted'; collection.textContent = product.collection || ''; meta.appendChild(collection); card.appendChild(meta);
+  if (product.new_arrival || product.featured) { const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = product.new_arrival ? 'New arrival' : 'The edit'; card.appendChild(tag); }
 
   return card;
 }
@@ -89,7 +78,9 @@ async function fetchProducts() {
       productsGrid.appendChild(createProductCard(product));
     });
 
-    setMessage(`Loaded ${products.length} product(s).`);
+    setMessage('');
+    if (typeof document.querySelectorAll === 'function') setupCollections(products);
+
   } catch (error) {
     setMessage(error.message, true);
   }
@@ -200,3 +191,19 @@ init().catch((error) => {
   accessMessage.hidden = false;
   accessMessage.textContent = `${error.message} Reload the page to try again.`;
 });
+
+function setupCollections(products) {
+  const filters = document.getElementById('collectionFilters'), links = document.getElementById('collectionLinks');
+  filters.innerHTML = ''; links.innerHTML = '';
+  const collections = [...new Set(products.map(p => p.collection).filter(Boolean))];
+  const show = (label) => {
+    productsGrid.innerHTML = '';
+    products.filter(p => label === 'All pieces' || (label === 'New arrivals' ? p.new_arrival : label === 'Featured' ? p.featured : p.collection === label)).forEach(p => productsGrid.appendChild(createProductCard(p)));
+    filters.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.textContent === label));
+  };
+  ['All pieces','New arrivals','Featured',...collections].forEach(label => {
+    const button = document.createElement('button'); button.textContent = label; button.className = label === 'All pieces' ? 'active' : ''; button.onclick = () => show(label); filters.appendChild(button);
+  });
+  collections.forEach(label => { const a = document.createElement('a'); a.className = 'collection-card'; a.textContent = label + ' ↗'; a.href = '#products'; a.onclick = () => show(label); links.appendChild(a); });
+  if (!collections.length) links.textContent = 'The next collection is on its way.';
+}

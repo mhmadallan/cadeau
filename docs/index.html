@@ -1,40 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cadeau Store</title>
-  <link rel="stylesheet" href="./styles.css" />
-</head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
-  <p id="accessMessage" role="status" class="p-4">Checking your sign-in...</p>
-  <main id="storeContent" class="mx-auto max-w-6xl px-4 py-8" hidden>
-    <header class="mb-8 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-      <div>
-        <h1 class="text-3xl font-bold">Cadeau Online Store</h1>
-        <p class="text-slate-600">Browse available products.</p>
-      </div>
-      <div class="flex gap-3">
-        <a href="#products" class="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500">Order products</a>
-        <a id="adminLink" href="admin.html" class="rounded-lg bg-white px-4 py-2 text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50" hidden>Admin Panel</a>
-        <a id="signinLink" href="signin.html" class="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500">Sign In</a>
-        <button id="logoutBtn" type="button" class="rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300" hidden>Logout</button>
-        <button id="refreshBtn" class="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-700">Refresh Products</button>
-      </div>
-    </header>
-
-    <section id="products">
-      <h2 class="mb-4 text-xl font-semibold">Products</h2>
-      <p class="mb-4 text-sm text-slate-600">Choose a product and click Order product to enter your quantity and delivery details.</p>
-      <p id="authMessage" class="mb-2 text-sm text-slate-600"></p>
-      <p id="message" class="mb-4 text-sm text-slate-600"></p>
-      <div id="productsGrid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
-    </section>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js"></script>
-  <script src="./customer-session.js"></script>
-  <script src="./app.js?v=phone-access-1"></script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cadeau — A considered wardrobe</title><meta name="description" content="Discover Cadeau. Considered pieces, effortless silhouettes and a wardrobe made your own."><link rel="stylesheet" href="boutique.css"></head><body>
+<div class="announcement">Considered pieces. Everyday elegance.</div><p id="accessMessage" role="status" class="notice">Checking your sign-in…</p>
+<main id="storeContent" hidden><header class="nav"><nav class="nav-links"><a href="#products">Shop all</a><a href="#collections">Collections</a></nav><a class="logo" href="index.html">CADEAU</a><div class="nav-actions"><a id="adminLink" href="admin.html" hidden>Admin</a><a id="signinLink" href="signin.html">Sign in</a><button id="logoutBtn" hidden>Sign out</button><button data-open-bag>Bag (<span data-bag-count>0</span>)</button></div></header>
+<section class="hero"><div class="hero-copy fade-in"><span class="eyebrow">The Cadeau edit</span><h1>The art of<br>everyday dressing.</h1><p>A considered wardrobe. Effortless silhouettes.<br>Pieces that feel like you.</p><a class="line-link" href="#products">Discover the collection ↗</a></div></section>
+<section id="products" class="section"><div class="section-head"><div><span class="eyebrow">Your next favourites</span><h2>The wardrobe edit</h2></div><button id="refreshBtn" class="option">Refresh</button></div><p id="authMessage" class="muted"></p><div id="collectionFilters" class="filters"></div><p id="message" role="status"></p><div id="productsGrid" class="product-grid"></div></section>
+<section class="editorial"><img loading="lazy" src="https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1200&q=85" alt="Editorial fashion portrait in natural light"><div class="editorial-copy"><span class="eyebrow">The Cadeau point of view</span><h2>Less effort.<br>More expression.</h2><p>For slow mornings and spontaneous evenings. Explore a wardrobe that moves with you, with room for your own point of view.</p><a class="line-link" href="#products">Find your next favourite ↗</a></div></section>
+<section id="collections" class="section"><span class="eyebrow">Explore your way</span><h2>A world of possibilities</h2><div id="collectionLinks" class="collections"></div></section>
+<footer class="footer"><div><a class="logo" href="index.html">CADEAU</a><p>A considered wardrobe.<br>Made your own.</p></div><div><span class="eyebrow">Personal service</span><p>Order online. We’ll be in touch<br>to arrange payment and delivery.</p></div><a href="#products">Back to the collection ↑</a></footer></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="customer-session.js"></script><script src="bag.js"></script><script src="app.js"></script></body></html>

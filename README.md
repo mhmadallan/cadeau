@@ -346,3 +346,18 @@ where email = 'your-admin-email@example.com';
   "stock": 12
 }
 ```
+
+
+## Fashion storefront and whole-cart checkout
+
+Apply `supabase/fashion-store.sql` in the Supabase SQL Editor **after all existing migrations**, including `customer-access.sql` and the notification migrations, before deploying the updated API and `docs/` frontend. Existing products remain visible and use their global stock until variants are added. Existing customer approval and email admin authentication remain in place.
+
+The admin product forms manage a collection/category, gallery image URLs, visibility, featured/new-arrival flags, and colour/size rows with independent stock. Variant IDs remain stable during edits so bags continue to identify the same variant. Collection sections are derived from product collection names; renaming a collection means updating its products. Image management uses hosted URLs, not file uploads.
+
+`product.html` provides galleries, colour/size selection, availability and recommendations. The persistent bag uses local storage; checkout submits only product IDs, variant IDs and quantities. The `place_cart_order` database function locks products in a stable order, calculates prices server-side, reserves every line atomically, stores an immutable item snapshot, and deduplicates retries by customer and request ID. Legacy order functions reject variant products. Customers confirm one order without online payment.
+
+The existing notification providers receive the full cart snapshot in their existing order notification flow. WhatsApp retains its nine-parameter approved template, with item names, sizes, colours, quantities and line totals in the product parameter. Verify the configured template accepts representative cart messages before production use. Telegram sends additional messages when a whole order exceeds message limits. Notification acceptance is not a delivery receipt; uncertain sends are not automatically repeated.
+
+The admin dashboard lists paginated orders and supports status changes. Cancellation is a workflow status and does **not** automatically restore inventory; the owner adjusts stock explicitly to avoid accidental double restocking.
+
+The editorial homepage uses external Unsplash placeholder photography and Google Fonts. Replace these with licensed brand photography and final product images before launch. Product photographs come from the owner's catalog. Build CSS with `npm run css:build`, then deploy through the existing GitHub Pages/Render workflow. Tests: `npm test`. Database transactions still require verification against a migrated Supabase staging database; mocked API tests do not execute PostgreSQL functions.

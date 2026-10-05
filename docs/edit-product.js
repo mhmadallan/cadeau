@@ -77,6 +77,7 @@ async function loadProduct() {
     throw new Error(product.error || 'Failed to load product');
   }
 
+  window.CatalogEditor.load(product);
   nameInput.value = product.name;
   descriptionInput.value = product.description ?? '';
   priceInput.value = product.price;
@@ -104,6 +105,7 @@ productForm.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const payload = {
+    ...window.CatalogEditor.read(),
     name: nameInput.value.trim(),
     description: descriptionInput.value.trim(),
     price: Number(priceInput.value),

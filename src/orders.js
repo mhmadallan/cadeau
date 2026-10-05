@@ -5,6 +5,17 @@ const { NotificationConfigError } = require('./notification-config-error');
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function validateOrder(body) {
+  if (body?.items) {
+    if (!uuid.test(body.request_id) || !Array.isArray(body.items) || !body.items.length || body.items.length > 30) throw new Error('Choose between 1 and 30 items.');
+    const seen = new Set();
+    for (const item of body.items) {
+      if (!uuid.test(item.product_id) || typeof item.variant_id !== 'string' || item.variant_id.length > 100 || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99 || seen.has(item.product_id + ':' + item.variant_id)) throw new Error('Invalid cart item.');
+      seen.add(item.product_id + ':' + item.variant_id);
+    }
+    const details = validateOrder({ ...body, items: undefined, product_id: body.items[0].product_id, quantity: 1 });
+    delete details.product_id; delete details.quantity;
+    return { ...details, items: body.items.map(({ product_id, variant_id, quantity }) => ({ product_id, variant_id, quantity })) };
+  }
   if (!body || !uuid.test(body.product_id) || !uuid.test(body.request_id)
     || !Number.isInteger(body.quantity) || body.quantity < 1 || body.quantity > 99) {
     throw new Error('Choose a product and a quantity between 1 and 99.');
@@ -52,14 +63,15 @@ function createOrderHandler(supabase, { getConfig = getNotificationConfig, notif
 
     let requiredImage = null;
     if (config.provider === 'whatsapp' && config.headerType === 'image') {
-      const product = await supabase.from('products').select('image_url').eq('id', payload.product_id).maybeSingle();
+      const product = await supabase.from('products').select('image_url').eq('id', (payload.product_id || payload.items?.[0].product_id)).maybeSingle();
       if (product.error) return res.status(503).json({ error: 'Could not check the product image. Please try again later.' });
       if (!product.data) return res.status(409).json({ error: 'This product is no longer available.' });
       requiredImage = getImageLink(product.data.image_url);
       if (!requiredImage) return res.status(409).json({ error: 'This product needs an image before it can be ordered. Please contact the store.' });
     }
 
-    const { data, error } = await supabase.rpc(req.authType === 'phone' ? 'place_customer_order' : 'place_order', {
+    const { data, error } = await supabase.rpc(payload.items ? 'place_cart_order' : (req.authType === 'phone' ? 'place_customer_order' : 'place_order'), {
+      ...(payload.items ? { p_user_id: null, p_customer_id: null } : {}),
       [req.authType === 'phone' ? 'p_customer_id' : 'p_user_id']: req.user.id,
       ...Object.fromEntries(Object.entries(payload).map(([key, value]) => [`p_${key}`, value])),
     });

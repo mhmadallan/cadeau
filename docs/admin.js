@@ -29,7 +29,9 @@ function setMessage(text, isError = false) {
   message.className = `mt-4 text-sm ${isError ? 'text-red-600' : 'text-emerald-700'}`;
 }
 
-function createProductCard(product) {
+function createProductCard(raw) {
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const product = Object.fromEntries(Object.entries(raw).map(([k,v]) => [k, typeof v === 'string' ? escape(v) : v]));
   const card = document.createElement('article');
   card.className = 'overflow-hidden rounded-xl bg-slate-50 shadow-sm ring-1 ring-slate-200';
 
@@ -162,12 +164,14 @@ async function deleteProduct(id) {
 
 function resetProductForm() {
   productForm.reset();
+  window.CatalogEditor.reset();
   stockInput.value = '0';
 }
 
 productForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const payload = {
+    ...window.CatalogEditor.read(),
     name: nameInput.value.trim(),
     description: descriptionInput.value.trim(),
     price: Number(priceInput.value),
@@ -225,6 +229,7 @@ async function init() {
   if (!allowed) return;
 
   await fetchProducts();
+  if (window.loadAdminOrders) await window.loadAdminOrders();
   if (window.loadAccessRequests) await window.loadAccessRequests();
 }
 
