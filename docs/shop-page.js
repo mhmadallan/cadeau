@@ -16,25 +16,7 @@
       const product = await request('products/' + encodeURIComponent(id));
       document.title = product.name + ' — Cadeau';
       document.getElementById('productName').textContent = product.name;
-      document.getElementById('productCollection').textContent = product.collection || 'The Cadeau edit';
-      document.getElementById('productDescription').textContent = product.description || '';
-      document.getElementById('productPrice').textContent = '$' + Number(product.price).toFixed(2);
       window.renderProductGallery(document.getElementById('gallery'), { ...product, image_urls: product.image_urls?.length ? product.image_urls : product.images });
-      const variants = product.variants || []; let color = variants[0]?.color || '', size = '';
-      const colors = document.getElementById('colors'), sizes = document.getElementById('sizes'), availability = document.getElementById('availability'), add = document.getElementById('addToBag'), quantity = document.getElementById('quantity');
-      const selected = () => variants.find(v => v.color === color && v.size === size);
-      const update = () => {
-        const stock = variants.length ? (selected()?.stock || 0) : product.stock;
-        add.disabled = !stock; quantity.max = Math.min(99,stock || 1);
-        availability.textContent = variants.length && !size ? 'Select your size.' : stock > 0 ? `${stock} available` : 'Currently unavailable';
-      };
-      const drawSizes = () => { sizes.replaceChildren(); [...new Set(variants.map(v => v.size))].forEach(value => { const v = variants.find(v => v.color === color && v.size === value); const b = document.createElement('button'); b.className='option'; b.textContent=value; b.disabled=!v?.stock; b.setAttribute('aria-pressed',String(size === value)); b.onclick=() => { size=value; drawSizes(); update(); }; sizes.append(b); }); };
-      const drawColors = () => { colors.replaceChildren(); [...new Set(variants.map(v => v.color))].forEach(value => { const b=document.createElement('button'); b.className='option'; b.textContent=value; b.setAttribute('aria-pressed',String(color===value)); b.onclick=() => { color=value; size=''; drawColors(); drawSizes(); update(); }; colors.append(b); }); };
-      if (!variants.length) document.getElementById('variantSelectors').hidden=true;
-      drawColors(); drawSizes(); update();
-      add.onclick=() => { try { const n=Number(quantity.value); if (!Number.isInteger(n)||n<1||n>99) throw new Error('Choose a quantity from 1 to 99.'); window.CadeauBag.add(product,selected(),n); } catch(e) { availability.textContent=e.message; } };
-      const related = (await request('products')).filter(p => p.id !== product.id).sort((a,b) => Number(b.collection === product.collection)-Number(a.collection === product.collection)).slice(0,4);
-      related.forEach(p => { const card=document.createElement('a'); card.className='product-card'; card.href='product.html?id='+encodeURIComponent(p.id); const image=document.createElement('img'); image.src=p.image_url || ''; image.alt=p.name; image.loading='lazy'; const photo=document.createElement('div'); photo.className='photo'; photo.append(image); const name=document.createElement('h3'); name.textContent=p.name; const price=document.createElement('p'); price.textContent='$'+Number(p.price).toFixed(2); card.setAttribute('aria-label', 'View ' + p.name); card.append(photo); document.getElementById('related').append(card); });
     } else {
       const form = document.getElementById('checkoutForm'), summary = document.getElementById('summary');
       let requestId = sessionStorage.getItem('cadeau-order-request');
