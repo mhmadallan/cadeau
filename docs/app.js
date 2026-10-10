@@ -31,23 +31,7 @@ function setAuthMessage(text, isError = false) {
 }
 
 function createProductCard(product) {
-  const card = document.createElement('article');
-  card.className = 'product-card fade-in';
-
-  const link = document.createElement('a');
-  link.href = './product.html?id=' + encodeURIComponent(product.id);
-  link.className = 'photo';
-  link.setAttribute('aria-label', 'View ' + product.name);
-  const image = document.createElement('img');
-  image.src = product.image_url || './product-placeholder.svg';
-  image.alt = product.name;
-  image.loading = 'lazy';
-  image.className = 'h-64 w-full object-cover';
-  image.onerror = () => { image.onerror = null; image.src = './product-placeholder.svg'; };
-  link.appendChild(image);
-  card.appendChild(link);
-
-  return card;
+  return window.createCollectionCard(product);
 }
 
 async function fetchProducts() {

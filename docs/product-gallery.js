@@ -6,7 +6,10 @@ window.renderProductGallery = function (container, product) {
     catch { return false; }
   };
   const images = [...new Set([product.image_url, ...(product.image_urls || [])].filter(safe))];
-  if (images.length) {
+  const slides = images.map(src => ({ src, video: false }));
+  if (safe(product.video_url)) slides.push({ src: product.video_url, video: true });
+  if (!slides.length) slides.push({ src: './product-placeholder.svg', video: false });
+  if (slides.length) {
     let current = 0;
     const stage = document.createElement('div');
     stage.className = 'gallery-stage';
@@ -14,7 +17,16 @@ window.renderProductGallery = function (container, product) {
     stage.setAttribute('aria-label', product.name + ' images');
     const main = document.createElement('img');
     main.className = 'gallery-main';
+    const video = document.createElement('video');
+    video.className = 'gallery-main';
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = 'none';
+    video.hidden = true;
+    if (safe(product.video_url)) video.src = product.video_url;
+    video.setAttribute('aria-label', product.name + ' video');
     stage.appendChild(main);
+    stage.appendChild(video);
     container.appendChild(stage);
     const thumbs = document.createElement('div');
     thumbs.className = 'gallery-thumbnails';
@@ -23,16 +35,19 @@ window.renderProductGallery = function (container, product) {
     counter.setAttribute('aria-live', 'polite');
     const buttons = [];
     const show = index => {
-      current = (index + images.length) % images.length;
-      main.src = images[current];
+      current = (index + slides.length) % slides.length;
+      video.pause();
+      main.hidden = slides[current].video;
+      video.hidden = !slides[current].video;
+      if (!slides[current].video) main.src = slides[current].src;
       main.alt = product.name + ', image ' + (current + 1);
-      counter.textContent = (current + 1) + ' / ' + images.length;
+      counter.textContent = (current + 1) + ' / ' + slides.length;
       buttons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === current)));
       const active = buttons[current];
       if (active) thumbs.scrollTo({ left: active.offsetLeft - thumbs.offsetLeft - (thumbs.clientWidth - active.offsetWidth) / 2, behavior: 'smooth' });
     };
-    if (images.length > 1) {
-      for (const [label, symbol, step] of [['Previous image', '?', -1], ['Next image', '?', 1]]) {
+    if (slides.length > 1) {
+      for (const [label, symbol, step] of [['Previous slide', '\u2039', -1], ['Next slide', '\u203a', 1]]) {
         const arrow = document.createElement('button');
         arrow.type = 'button';
         arrow.className = 'gallery-arrow ' + (step < 0 ? 'gallery-prev' : 'gallery-next');
@@ -47,16 +62,23 @@ window.renderProductGallery = function (container, product) {
           show(current + (event.key === 'ArrowLeft' ? -1 : 1));
         }
       });
-      images.forEach((url, index) => {
+      slides.forEach((slide, index) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'gallery-thumbnail';
         button.setAttribute('aria-label', 'Show image ' + (index + 1) + ' of ' + product.name);
         const thumbnail = document.createElement('img');
-        thumbnail.src = url;
+        thumbnail.src = slide.video ? (images[0] || './product-placeholder.svg') : slide.src;
         thumbnail.alt = '';
         thumbnail.loading = 'lazy';
         button.appendChild(thumbnail);
+        if (slide.video) {
+          button.setAttribute('aria-label', 'Show video of ' + product.name);
+          const play = document.createElement('span');
+          play.className = 'gallery-play';
+          play.textContent = '?';
+          button.appendChild(play);
+        }
         button.addEventListener('click', () => show(index));
         buttons.push(button);
         thumbs.appendChild(button);
@@ -65,15 +87,5 @@ window.renderProductGallery = function (container, product) {
       container.appendChild(thumbs);
     }
     show(0);
-  }
-  if (safe(product.video_url)) {
-    const video = document.createElement('video');
-    video.src = product.video_url;
-    video.controls = true;
-    video.playsInline = true;
-    video.preload = 'metadata';
-    video.className = 'gallery-video';
-    video.setAttribute('aria-label', product.name + ' video');
-    container.appendChild(video);
   }
 };
