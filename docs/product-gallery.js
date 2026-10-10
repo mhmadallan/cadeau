@@ -21,6 +21,8 @@ window.renderProductGallery = function (container, product) {
     video.className = 'gallery-main';
     video.controls = true;
     video.playsInline = true;
+    video.muted = true;
+    video.loop = true;
     video.preload = 'none';
     video.hidden = true;
     if (safe(product.video_url)) video.src = product.video_url;
@@ -28,12 +30,10 @@ window.renderProductGallery = function (container, product) {
     stage.appendChild(main);
     stage.appendChild(video);
     container.appendChild(stage);
-    const thumbs = document.createElement('div');
-    thumbs.className = 'gallery-thumbnails';
     const counter = document.createElement('p');
     counter.className = 'gallery-counter';
     counter.setAttribute('aria-live', 'polite');
-    const buttons = [];
+
     const show = index => {
       current = (index + slides.length) % slides.length;
       video.pause();
@@ -42,9 +42,10 @@ window.renderProductGallery = function (container, product) {
       if (!slides[current].video) main.src = slides[current].src;
       main.alt = product.name + ', image ' + (current + 1);
       counter.textContent = (current + 1) + ' / ' + slides.length;
-      buttons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === current)));
-      const active = buttons[current];
-      if (active) thumbs.scrollTo({ left: active.offsetLeft - thumbs.offsetLeft - (thumbs.clientWidth - active.offsetWidth) / 2, behavior: 'smooth' });
+      if (slides[current].video) {
+        const playback = video.play();
+        if (playback) playback.catch(() => {});
+      }
     };
     if (slides.length > 1) {
       for (const [label, symbol, step] of [['Previous slide', '\u2039', -1], ['Next slide', '\u203a', 1]]) {
@@ -52,39 +53,18 @@ window.renderProductGallery = function (container, product) {
         arrow.type = 'button';
         arrow.className = 'gallery-arrow ' + (step < 0 ? 'gallery-prev' : 'gallery-next');
         arrow.setAttribute('aria-label', label);
-        arrow.textContent = symbol;
+        arrow.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (step < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7') + '"/></svg>';
         arrow.addEventListener('click', () => show(current + step));
         stage.appendChild(arrow);
       }
       stage.addEventListener('keydown', event => {
+        if (event.target === video) return;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
           event.preventDefault();
           show(current + (event.key === 'ArrowLeft' ? -1 : 1));
         }
       });
-      slides.forEach((slide, index) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'gallery-thumbnail';
-        button.setAttribute('aria-label', 'Show image ' + (index + 1) + ' of ' + product.name);
-        const thumbnail = document.createElement('img');
-        thumbnail.src = slide.video ? (images[0] || './product-placeholder.svg') : slide.src;
-        thumbnail.alt = '';
-        thumbnail.loading = 'lazy';
-        button.appendChild(thumbnail);
-        if (slide.video) {
-          button.setAttribute('aria-label', 'Show video of ' + product.name);
-          const play = document.createElement('span');
-          play.className = 'gallery-play';
-          play.textContent = '?';
-          button.appendChild(play);
-        }
-        button.addEventListener('click', () => show(index));
-        buttons.push(button);
-        thumbs.appendChild(button);
-      });
-      container.appendChild(counter);
-      container.appendChild(thumbs);
+      stage.appendChild(counter);
     }
     show(0);
   }

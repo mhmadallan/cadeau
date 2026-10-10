@@ -68,6 +68,7 @@ window.createCollectionCard = function (product) {
     } catch (error) { status.textContent = error.message; }
   });
   actions.append(like, add);
-  card.append(actions, options, status);
+  gallery.children[0].appendChild(actions);
+  card.append(options, status);
   return card;
 };

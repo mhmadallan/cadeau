@@ -16,3 +16,10 @@
 
 .gallery-main[hidden]{display:none}.gallery-thumbnail{position:relative}.gallery-play{position:absolute;inset:0;display:grid;place-items:center;color:white;text-shadow:0 1px 6px #000;font-size:24px;background:#0003;border-radius:8px}
 .collection-product{min-width:0}.collection-product .gallery-stage{aspect-ratio:4/5;max-height:none}.collection-product .gallery-main{padding:0}.collection-product .gallery-thumbnails{gap:6px}.collection-product .gallery-thumbnail{flex-basis:48px;width:48px;height:60px}.collection-product .gallery-counter{margin:8px 0}.collection-actions{display:flex;justify-content:space-between;align-items:center;padding:8px 0}.collection-icon{display:grid;place-items:center;width:44px;height:44px;border:1px solid #ddd;border-radius:50%;background:white;font-size:28px;cursor:pointer}.collection-icon[aria-pressed="true"]{color:#b42347}.collection-icon:disabled{opacity:.35;cursor:not-allowed}.collection-icon:focus-visible{outline:3px solid #059669;outline-offset:2px}.collection-variants{width:100%;padding:10px;background:white;border:1px solid #ddd;border-radius:8px}.collection-status{font-size:13px;margin:4px 0}.collection-status:empty{display:none}
+
+/* Collection controls sit inside the media frame. */
+.collection-product .collection-actions{position:absolute;z-index:2;top:12px;right:12px;display:flex;flex-direction:column;gap:8px;padding:0}
+.collection-product .collection-icon{width:42px;height:42px;border:1px solid #ffffff90;background:rgba(255,255,255,.88);box-shadow:0 2px 10px #0001;backdrop-filter:blur(8px)}
+.gallery-arrow{width:40px;height:48px;border:0;border-radius:10px;background:rgba(255,255,255,.75);box-shadow:none;backdrop-filter:blur(6px);z-index:1}
+.gallery-arrow:hover{background:#fff}.gallery-prev{left:8px}.gallery-next{right:8px}
+.collection-product .gallery-counter,.gallery-counter{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);margin:0;padding:4px 10px;border-radius:20px;background:#ffffffd9;color:#334155;font-size:11px;pointer-events:none}
