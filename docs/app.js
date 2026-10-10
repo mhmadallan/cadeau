@@ -177,18 +177,42 @@ init().catch((error) => {
   accessMessage.textContent = `${error.message} Reload the page to try again.`;
 });
 
+let selectedCategory = '';
+let selectedEdit = 'all';
 function setupCollections(products) {
   const filters = document.getElementById('collectionFilters'), links = document.getElementById('collectionLinks');
-  filters.innerHTML = ''; links.innerHTML = '';
-  const collections = [...new Set(products.map(p => p.collection).filter(Boolean))];
-  const show = (label) => {
-    productsGrid.innerHTML = '';
-    products.filter(p => label === 'All pieces' || (label === 'New arrivals' ? p.new_arrival : label === 'Featured' ? p.featured : p.collection === label)).forEach(p => productsGrid.appendChild(createProductCard(p)));
-    filters.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.textContent === label));
+  filters.replaceChildren(); links.replaceChildren();
+  const key = value => (value || '').trim().toLocaleLowerCase();
+  const categories = new Map();
+  products.forEach(p => { const id = key(p.collection); if (id && !categories.has(id)) categories.set(id, p.collection.trim()); });
+  if (selectedCategory && !categories.has(selectedCategory)) selectedCategory = '';
+  const label = document.createElement('label');
+  label.textContent = 'Category ';
+  const select = document.createElement('select');
+  select.className = 'option';
+  select.setAttribute('aria-label', 'Filter by category');
+  const option = (value, text) => { const item = document.createElement('option'); item.value = value; item.textContent = text; select.appendChild(item); };
+  option('', 'All categories');
+  [...categories].sort((a,b) => a[1].localeCompare(b[1])).forEach(([id,name]) => option(id, name));
+  select.value = selectedCategory;
+  label.appendChild(select); filters.appendChild(label);
+  const buttons = [];
+  const show = () => {
+    productsGrid.replaceChildren();
+    const matching = products.filter(p => (!selectedCategory || key(p.collection) === selectedCategory) && (selectedEdit === 'all' || (selectedEdit === 'new' ? p.new_arrival : p.featured)));
+    matching.forEach(p => productsGrid.appendChild(createProductCard(p)));
+    setMessage(matching.length ? matching.length + ' product(s)' : 'No products match these filters. Choose another category or All pieces.');
+    buttons.forEach(([button,id]) => { button.classList.toggle('active', selectedEdit === id); button.setAttribute('aria-pressed', String(selectedEdit === id)); });
   };
-  ['All pieces','New arrivals','Featured',...collections].forEach(label => {
-    const button = document.createElement('button'); button.textContent = label; button.className = label === 'All pieces' ? 'active' : ''; button.onclick = () => show(label); filters.appendChild(button);
+  select.addEventListener('change', () => { selectedCategory = select.value; show(); });
+  for (const [id,text] of [['all','All pieces'],['new','New arrivals'],['featured','Featured']]) {
+    const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
+    button.addEventListener('click', () => { selectedEdit = id; show(); }); buttons.push([button,id]); filters.appendChild(button);
+  }
+  [...categories].sort((a,b) => a[1].localeCompare(b[1])).forEach(([id,name]) => {
+    const link = document.createElement('a'); link.className = 'collection-card'; link.textContent = name; link.href = '#products';
+    link.addEventListener('click', () => { selectedCategory = id; selectedEdit = 'all'; select.value = id; show(); }); links.appendChild(link);
   });
-  collections.forEach(label => { const a = document.createElement('a'); a.className = 'collection-card'; a.textContent = label + ' ↗'; a.href = '#products'; a.onclick = () => show(label); links.appendChild(a); });
-  if (!collections.length) links.textContent = 'The next collection is on its way.';
+  if (!categories.size) links.textContent = 'Categories will appear as products are added.';
+  show();
 }

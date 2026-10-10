@@ -1,9 +1,18 @@
 window.CatalogEditor = {
   init() {
     const form=document.getElementById('productForm'), block=document.createElement('div'); block.className='md:col-span-2';
-    block.innerHTML='<label class="flex flex-col gap-1">Collection / category<input id="collection" class="rounded-lg border border-slate-300 px-3 py-2" maxlength="100"></label><div class="my-4 flex gap-4"><label><input id="visible" type="checkbox" checked> Visible</label><label><input id="featured" type="checkbox"> Featured</label><label><input id="new_arrival" type="checkbox"> New arrival</label></div><h3>Size & colour variants</h3><p class="text-sm my-2">Each row is one colour and size combination with its own stock. When variants exist, they replace global stock.</p><div id="variantRows"></div><button id="addVariant" type="button" class="my-3 rounded-lg border px-4 py-2">+ Add variant</button>';
+    block.innerHTML='<label class="flex flex-col gap-1">Category<input id="collection" list="categorySuggestions" placeholder="e.g. Sweaters, Pants" class="rounded-lg border border-slate-300 px-3 py-2" maxlength="100"></label><datalist id="categorySuggestions"></datalist><p class="text-sm my-2">Choose an existing category or type a new one. Save the product to make it available in the shop filter.</p><div class="my-4 flex gap-4"><label><input id="visible" type="checkbox" checked> Visible</label><label><input id="featured" type="checkbox"> Featured</label><label><input id="new_arrival" type="checkbox"> New arrival</label></div><h3>Size & colour variants</h3><p class="text-sm my-2">Each row is one colour and size combination with its own stock. When variants exist, they replace global stock.</p><div id="variantRows"></div><button id="addVariant" type="button" class="my-3 rounded-lg border px-4 py-2">+ Add variant</button>';
     form.insertBefore(block,form.lastElementChild);
     document.getElementById('addVariant').onclick=()=>this.row({id:crypto.randomUUID(),color:'',size:'',stock:0});
+  },
+  categories(products) {
+    const list = document.getElementById('categorySuggestions');
+    list.replaceChildren();
+    const names = new Map();
+    products.forEach(p => { const name = (p.collection || '').trim(); if (name) names.set(name.toLocaleLowerCase(), name); });
+    [...names.values()].sort((a,b) => a.localeCompare(b)).forEach(name => {
+      const option = document.createElement('option'); option.value = name; list.appendChild(option);
+    });
   },
   row(v) {
     const row=document.createElement('div'); row.className='flex flex-wrap gap-2 my-2'; row.dataset.id=v.id;

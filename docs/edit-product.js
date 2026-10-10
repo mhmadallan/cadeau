@@ -141,6 +141,8 @@ async function init() {
   document.getElementById('protectedContent').hidden = false;
   document.getElementById('accessMessage').hidden = true;
   await loadProduct();
+  const categoriesResponse = await fetch(apiBase, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (categoriesResponse.ok) window.CatalogEditor.categories(await categoriesResponse.json());
 }
 
 init().catch((error) => {

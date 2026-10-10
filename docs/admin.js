@@ -121,6 +121,7 @@ async function fetchProducts() {
     throw new Error(products.error || 'Failed to fetch products');
   }
 
+  window.CatalogEditor.categories(products);
   productsGrid.innerHTML = '';
   if (!products.length) {
     productsGrid.innerHTML = '<p class="text-slate-600">No products available yet.</p>';
