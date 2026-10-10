@@ -90,12 +90,15 @@
       <button id="accessPrevious" type="button" class="mr-4" disabled>Previous</button>
       <button id="accessNext" type="button">Next</button>
     </section>
+    <section class="mt-8 rounded-xl bg-white p-5"><h2 class="text-xl">Orders</h2><p class="my-3">Status changes do not restore stock. Adjust variant stock manually for cancellations.</p><button id="refreshOrders" class="border rounded px-4 py-2">Refresh orders</button><p id="ordersStatus" role="status"></p><div id="adminOrders"></div><button id="ordersPrevious">Previous</button> <button id="ordersNext">Next</button></section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
+  <script src="./catalog-editor.js"></script>
   <script src="./admin.js?v=phone-access-1"></script>
   <script src="./access-admin.js"></script>
   <script src="./product-upload.js"></script>
+  <script src="./orders-admin.js"></script>
 </body>
 </html>

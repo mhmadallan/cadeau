@@ -33,8 +33,8 @@ function getImageLink(value) {
 
 async function sendOrderNotification(order, config, fetchImpl = fetch) {
   const values = [
-    order.id, order.product_name, String(order.quantity),
-    `$${Number(order.unit_price).toFixed(2)}`, `$${Number(order.total).toFixed(2)}`,
+    order.id, order.items?.length ? order.items.map(i => `${i.product_name} / ${i.color || 'Standard'} / ${i.size || 'One size'} x ${i.quantity} ($${Number(i.total).toFixed(2)})`).join('; ') : order.product_name, String(order.items?.length ? order.items.reduce((n,i) => n+i.quantity,0) : order.quantity),
+    order.items?.length ? 'See item totals' : `$${Number(order.unit_price).toFixed(2)}`, `$${Number(order.total).toFixed(2)}`,
     order.customer_name, order.customer_phone, order.delivery_address,
     order.notes || 'None',
   ];

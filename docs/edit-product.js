@@ -77,11 +77,12 @@ async function loadProduct() {
     throw new Error(product.error || 'Failed to load product');
   }
 
+  window.CatalogEditor.load(product);
   nameInput.value = product.name;
   descriptionInput.value = product.description ?? '';
   priceInput.value = product.price;
   imageUrlInput.value = product.image_url ?? '';
-  document.getElementById('image_urls').value = (product.image_urls || []).filter(url => url !== product.image_url).join('\n');
+  document.getElementById('image_urls').value = (product.image_urls?.length ? product.image_urls : (product.images || [])).filter(url => url !== product.image_url).join('\n');
   document.getElementById('video_url').value = product.video_url || '';
   stockInput.value = product.stock ?? 0;
 }
@@ -106,6 +107,7 @@ productForm.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const payload = {
+    ...window.CatalogEditor.read(),
     name: nameInput.value.trim(),
     description: descriptionInput.value.trim(),
     price: Number(priceInput.value),

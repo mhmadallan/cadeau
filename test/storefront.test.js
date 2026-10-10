@@ -67,7 +67,7 @@ test('verified sessions fetch products with authorization and logout hides them'
   const page = await storefront({ session: { access_token: 'test-token', user: { id: 'user-1' } } });
   assert.equal(page.elements.get('storeContent').hidden, false);
   assert.equal(page.requests.find((r) => r.url.endsWith('/api/products')).options.headers.Authorization, 'Bearer test-token');
-  assert.equal(page.elements.get('productsGrid').children[0].children[0].href, './order.html?id=product-1');
+  assert.equal(page.elements.get('productsGrid').children[0].children[0].href, './product.html?id=product-1');
   page.logout();
   assert.equal(page.elements.get('storeContent').hidden, true);
   assert.equal(page.elements.get('productsGrid').innerHTML, '');

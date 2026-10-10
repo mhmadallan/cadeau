@@ -7,6 +7,7 @@ require('dotenv').config();
 const { getSupabaseClient } = require('./supabase');
 const { createOrderHandler } = require('./orders');
 const { createWhatsAppWebhook } = require('./whatsapp-webhook');
+const { validateProduct } = require('./catalog');
 const { createCustomerAccess } = require('./customer-access');
 
 const app = express();
@@ -141,10 +142,10 @@ app.patch('/api/admin/access/:id', requireAdmin, customerAccess.decide);
 
 app.post('/api/orders', requireAuthenticatedUser, createOrderHandler(supabase));
 
-app.get('/api/products', requireAuthenticatedUser, async (_req, res) => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
+app.get('/api/products', requireAuthenticatedUser, async (req, res) => {
+  let query = supabase.from(tableName).select('*');
+  if (req.userRole !== 'admin') query = query.eq('visible', true);
+  const { data, error } = await query
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -162,6 +163,7 @@ app.get('/api/products/:id', requireAuthenticatedUser, async (req, res) => {
     .eq('id', id)
     .single();
 
+  if (!error && data?.visible === false && req.userRole !== 'admin') return res.status(404).json({ error: 'Product not found' });
   if (error) {
     const status = error.code === 'PGRST116' ? 404 : 500;
     return res.status(status).json({ error: error.message });
@@ -179,24 +181,15 @@ app.post('/api/admin/product-images', requireAdmin, (req, res, next) => {
 }, createProductUpload(supabase));
 
 app.post('/api/products', requireAdmin, async (req, res) => {
-  const { name, description, price, stock } = req.body;
-  let media;
-  try { media = productMedia(req.body); }
-  catch (error) { return res.status(400).json({ error: error.message }); }
-
-  if (!name || price === undefined || price === null) {
-    return res.status(400).json({ error: 'name and price are required' });
-  }
+  let product;
+  try { product = validateProduct(req.body);
+    const media = productMedia({ ...req.body, image_urls: req.body.image_urls ?? req.body.images });
+    product = { ...product, ...media };
+    if (media.image_urls) product.images = media.image_urls; } catch (error) { return res.status(400).json({ error: error.message }); }
 
   const { data, error } = await supabase
     .from(tableName)
-    .insert({
-      name,
-      description: description || null,
-      price: Number(price),
-      ...media,
-      stock: Number.isFinite(Number(stock)) ? Number(stock) : 0,
-    })
+    .insert(product)
     .select('*')
     .single();
 
@@ -209,24 +202,15 @@ app.post('/api/products', requireAdmin, async (req, res) => {
 
 app.put('/api/products/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { name, description, price, stock } = req.body;
-  let media;
-  try { media = productMedia(req.body); }
-  catch (error) { return res.status(400).json({ error: error.message }); }
-
-  if (!name || price === undefined || price === null) {
-    return res.status(400).json({ error: 'name and price are required' });
-  }
+  let product;
+  try { product = validateProduct(req.body);
+    const media = productMedia({ ...req.body, image_urls: req.body.image_urls ?? req.body.images });
+    product = { ...product, ...media };
+    if (media.image_urls) product.images = media.image_urls; } catch (error) { return res.status(400).json({ error: error.message }); }
 
   const { data, error } = await supabase
     .from(tableName)
-    .update({
-      name,
-      description: description || null,
-      price: Number(price),
-      ...media,
-      stock: Number.isFinite(Number(stock)) ? Number(stock) : 0,
-    })
+    .update(product)
     .eq('id', id)
     .select('*')
     .single();
@@ -252,6 +236,17 @@ app.delete('/api/products/:id', requireAdmin, async (req, res) => {
   }
 
   return res.status(204).send();
+});
+
+app.get('/api/admin/orders', requireAdmin, async (req, res) => {
+  const page = Math.max(0, Number.parseInt(req.query.page, 10) || 0);
+  const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).range(page * 50, page * 50 + 49);
+  return error ? res.status(503).json({ error: 'Could not load orders' }) : res.json(data);
+});
+app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
+  if (!['new','confirmed','dispatched','completed','cancelled'].includes(req.body.status)) return res.status(400).json({ error: 'Invalid status' });
+  const { data, error } = await supabase.from('orders').update({ status: req.body.status }).eq('id', req.params.id).select('*').single();
+  return error ? res.status(503).json({ error: 'Could not update order' }) : res.json(data);
 });
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'cadeau-api' }));

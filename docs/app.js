@@ -32,11 +32,11 @@ function setAuthMessage(text, isError = false) {
 
 function createProductCard(product) {
   const card = document.createElement('article');
-  card.className = 'overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200';
+  card.className = 'product-card fade-in';
 
   const link = document.createElement('a');
-  link.href = './order.html?id=' + encodeURIComponent(product.id);
-  link.className = 'block focus:ring-2 focus:ring-emerald-600';
+  link.href = './product.html?id=' + encodeURIComponent(product.id);
+  link.className = 'photo';
   link.setAttribute('aria-label', 'View ' + product.name);
   const image = document.createElement('img');
   image.src = product.image_url || './product-placeholder.svg';
@@ -79,7 +79,9 @@ async function fetchProducts() {
       productsGrid.appendChild(createProductCard(product));
     });
 
-    setMessage(`Loaded ${products.length} product(s).`);
+    setMessage('');
+    if (typeof document.querySelectorAll === 'function') setupCollections(products);
+
   } catch (error) {
     setMessage(error.message, true);
   }
@@ -190,3 +192,19 @@ init().catch((error) => {
   accessMessage.hidden = false;
   accessMessage.textContent = `${error.message} Reload the page to try again.`;
 });
+
+function setupCollections(products) {
+  const filters = document.getElementById('collectionFilters'), links = document.getElementById('collectionLinks');
+  filters.innerHTML = ''; links.innerHTML = '';
+  const collections = [...new Set(products.map(p => p.collection).filter(Boolean))];
+  const show = (label) => {
+    productsGrid.innerHTML = '';
+    products.filter(p => label === 'All pieces' || (label === 'New arrivals' ? p.new_arrival : label === 'Featured' ? p.featured : p.collection === label)).forEach(p => productsGrid.appendChild(createProductCard(p)));
+    filters.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.textContent === label));
+  };
+  ['All pieces','New arrivals','Featured',...collections].forEach(label => {
+    const button = document.createElement('button'); button.textContent = label; button.className = label === 'All pieces' ? 'active' : ''; button.onclick = () => show(label); filters.appendChild(button);
+  });
+  collections.forEach(label => { const a = document.createElement('a'); a.className = 'collection-card'; a.textContent = label + ' ↗'; a.href = '#products'; a.onclick = () => show(label); links.appendChild(a); });
+  if (!collections.length) links.textContent = 'The next collection is on its way.';
+}
