@@ -43,8 +43,26 @@
           <textarea id="description" rows="3" class="rounded-lg border border-slate-300 px-3 py-2"></textarea>
         </label>
         <label class="flex flex-col gap-1">
-          <span class="text-sm font-medium">Image URL</span>
+          <span class="text-sm font-medium">Cover image URL</span>
           <input id="image_url" type="url" class="rounded-lg border border-slate-300 px-3 py-2" />
+        </label>
+        <label class="flex flex-col gap-1 md:col-span-2">
+          <span class="text-sm font-medium">Upload cover image from device</span>
+          <input id="coverFiles" type="file" accept="image/jpeg,image/png" />
+        </label>
+        <label class="flex flex-col gap-1 md:col-span-2">
+          <span class="text-sm font-medium">Upload additional images from device</span>
+          <input id="galleryFiles" type="file" accept="image/jpeg,image/png" multiple />
+          <span class="text-sm text-slate-600">JPEG or PNG, up to 5 MB per image. You can also paste URLs below.</span>
+          <span id="uploadStatus" role="status" aria-live="polite" class="text-sm"></span>
+        </label>
+        <label class="flex flex-col gap-1 md:col-span-2">
+          <span class="text-sm font-medium">Additional image URLs (one per line, up to 12)</span>
+          <textarea id="image_urls" rows="4" class="rounded-lg border border-slate-300 px-3 py-2"></textarea>
+        </label>
+        <label class="flex flex-col gap-1 md:col-span-2">
+          <span class="text-sm font-medium">Video URL (optional, direct HTTPS MP4 or WebM file)</span>
+          <input id="video_url" type="url" class="rounded-lg border border-slate-300 px-3 py-2" />
         </label>
         <label class="flex flex-col gap-1">
           <span class="text-sm font-medium">Stock</span>
@@ -78,5 +96,6 @@
   <script src="./config.js"></script>
   <script src="./admin.js?v=phone-access-1"></script>
   <script src="./access-admin.js"></script>
+  <script src="./product-upload.js"></script>
 </body>
 </html>

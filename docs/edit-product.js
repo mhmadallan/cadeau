@@ -81,6 +81,8 @@ async function loadProduct() {
   descriptionInput.value = product.description ?? '';
   priceInput.value = product.price;
   imageUrlInput.value = product.image_url ?? '';
+  document.getElementById('image_urls').value = (product.image_urls || []).filter(url => url !== product.image_url).join('\n');
+  document.getElementById('video_url').value = product.video_url || '';
   stockInput.value = product.stock ?? 0;
 }
 
@@ -108,6 +110,8 @@ productForm.addEventListener('submit', async (event) => {
     description: descriptionInput.value.trim(),
     price: Number(priceInput.value),
     image_url: imageUrlInput.value.trim(),
+    image_urls: document.getElementById('image_urls').value.split(/\r?\n/).map(value => value.trim()).filter(Boolean),
+    video_url: document.getElementById('video_url').value.trim(),
     stock: Number(stockInput.value || 0),
   };
 

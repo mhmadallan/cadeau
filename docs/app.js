@@ -34,28 +34,18 @@ function createProductCard(product) {
   const card = document.createElement('article');
   card.className = 'overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200';
 
-  const image = product.image_url
-    ? `<img src="${product.image_url}" alt="${product.name}" class="h-44 w-full object-cover" />`
-    : '<div class="grid h-44 place-items-center bg-slate-200 text-slate-500">No image</div>';
-
-  card.innerHTML = `
-    ${image}
-    <div class="p-4">
-      <h3 class="text-lg font-semibold">${product.name}</h3>
-      <p class="mt-1 text-sm text-slate-600 min-h-10">${product.description ?? ''}</p>
-      <div class="mt-3 flex items-center justify-between text-sm">
-        <span class="font-medium text-emerald-700">$${Number(product.price).toFixed(2)}</span>
-        <span class="rounded-full bg-slate-100 px-2 py-1 text-slate-700">Stock: ${product.stock ?? 0}</span>
-      </div>
-    </div>
-  `;
-
-  const orderLink = document.createElement('a');
-  orderLink.className = 'm-4 mt-0 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500';
-  orderLink.textContent = Number(product.stock) > 0 ? 'Order product' : 'Out of stock';
-  if (Number(product.stock) > 0) orderLink.href = `./order.html?id=${encodeURIComponent(product.id)}`;
-  else orderLink.setAttribute('aria-disabled', 'true');
-  card.appendChild(orderLink);
+  const link = document.createElement('a');
+  link.href = './order.html?id=' + encodeURIComponent(product.id);
+  link.className = 'block focus:ring-2 focus:ring-emerald-600';
+  link.setAttribute('aria-label', 'View ' + product.name);
+  const image = document.createElement('img');
+  image.src = product.image_url || './product-placeholder.svg';
+  image.alt = product.name;
+  image.loading = 'lazy';
+  image.className = 'h-64 w-full object-cover';
+  image.onerror = () => { image.onerror = null; image.src = './product-placeholder.svg'; };
+  link.appendChild(image);
+  card.appendChild(link);
 
   return card;
 }

@@ -1,4 +1,6 @@
 const express = require('express');
+const { productMedia } = require('./product-media');
+const { createProductUpload } = require('./product-upload');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -168,8 +170,19 @@ app.get('/api/products/:id', requireAuthenticatedUser, async (req, res) => {
   return res.json(data);
 });
 
+app.post('/api/admin/product-images', requireAdmin, (req, res, next) => {
+  if (!['image/jpeg', 'image/png'].includes(req.get('content-type'))) return res.status(415).json({ error: 'Choose a JPEG or PNG image.' });
+  express.raw({ type: ['image/jpeg', 'image/png'], limit: '5mb' })(req, res, error => {
+    if (error) return res.status(error.status === 413 ? 413 : 400).json({ error: 'Image must be no larger than 5 MB.' });
+    next();
+  });
+}, createProductUpload(supabase));
+
 app.post('/api/products', requireAdmin, async (req, res) => {
-  const { name, description, price, image_url, stock } = req.body;
+  const { name, description, price, stock } = req.body;
+  let media;
+  try { media = productMedia(req.body); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
 
   if (!name || price === undefined || price === null) {
     return res.status(400).json({ error: 'name and price are required' });
@@ -181,7 +194,7 @@ app.post('/api/products', requireAdmin, async (req, res) => {
       name,
       description: description || null,
       price: Number(price),
-      image_url: image_url || null,
+      ...media,
       stock: Number.isFinite(Number(stock)) ? Number(stock) : 0,
     })
     .select('*')
@@ -196,7 +209,10 @@ app.post('/api/products', requireAdmin, async (req, res) => {
 
 app.put('/api/products/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { name, description, price, image_url, stock } = req.body;
+  const { name, description, price, stock } = req.body;
+  let media;
+  try { media = productMedia(req.body); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
 
   if (!name || price === undefined || price === null) {
     return res.status(400).json({ error: 'name and price are required' });
@@ -208,7 +224,7 @@ app.put('/api/products/:id', requireAdmin, async (req, res) => {
       name,
       description: description || null,
       price: Number(price),
-      image_url: image_url || null,
+      ...media,
       stock: Number.isFinite(Number(stock)) ? Number(stock) : 0,
     })
     .eq('id', id)

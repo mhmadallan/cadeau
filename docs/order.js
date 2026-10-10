@@ -50,6 +50,7 @@ async function initOrder() {
   document.getElementById('accessMessage').hidden = true;
   orderProduct = response.ok ? await response.json() : { name: 'Previously submitted order', price: 0, stock: 0 };
   document.getElementById('productSummary').textContent = `${orderProduct.name} — $${Number(orderProduct.price).toFixed(2)} each`;
+  window.renderProductGallery(document.getElementById('productGallery'), orderProduct);
   if (pendingOrder) {
     for (const [key, value] of Object.entries(pendingOrder)) {
       if (orderForm.elements.namedItem(key)) orderForm.elements.namedItem(key).value = value;

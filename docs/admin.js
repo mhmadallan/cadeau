@@ -172,6 +172,8 @@ productForm.addEventListener('submit', async (event) => {
     description: descriptionInput.value.trim(),
     price: Number(priceInput.value),
     image_url: imageUrlInput.value.trim(),
+    image_urls: document.getElementById('image_urls').value.split(/\r?\n/).map(value => value.trim()).filter(Boolean),
+    video_url: document.getElementById('video_url').value.trim(),
     stock: Number(stockInput.value || 0),
   };
 
