@@ -27,12 +27,28 @@ test('collection gallery puts video last, wraps arrows and pauses hidden video',
 test('card saves likes and requires explicit variant selection before adding one item', () => {
   const { ctx, added } = setup();
   const product = { id: 'p', name: 'Gift', stock: 2, variants: [{ id: 'v', color: 'Blue', size: 'M', stock: 2 }] };
-  const card = ctx.window.createCollectionCard(product);
+  const card = ctx.window.createCollectionCard(product, 'account-a');
   const [gallery, select] = card.children;
   const actions = gallery.children[0].children.at(-1);
   const [like, add] = actions.children;
   like.events.click(); assert.equal(like.attrs['aria-pressed'], 'true');
-  const other = ctx.window.createCollectionCard(product); assert.equal(other.children[0].children[0].children.at(-1).children[0].attrs['aria-pressed'], 'true');
+  const other = ctx.window.createCollectionCard(product, 'account-a'); assert.equal(other.children[0].children[0].children.at(-1).children[0].attrs['aria-pressed'], 'true');
   add.events.click(); assert.equal(select.hidden, false); assert.equal(added.length, 0);
   select.value = 'v'; add.events.click(); assert.equal(added[0][1].id, 'v'); assert.equal(added[0][2], 1);
+});
+
+test('likes are isolated per account and ignore the old shared likes', () => {
+  const { ctx } = setup();
+  const product = { id: 'p', name: 'Gift', stock: 1 };
+  const heart = account => ctx.window.createCollectionCard(product, account).children[0].children[0].children.at(-1).children[0];
+  ctx.localStorage.setItem('cadeau-likes', JSON.stringify(['p']));
+  assert.equal(heart('account-a').attrs['aria-pressed'], 'false');
+  heart('account-a').events.click();
+  assert.equal(heart('account-a').attrs['aria-pressed'], 'true');
+  assert.equal(heart('account-b').attrs['aria-pressed'], 'false');
+  heart('account-b').events.click();
+  heart('account-a').events.click();
+  assert.equal(heart('account-a').attrs['aria-pressed'], 'false');
+  assert.equal(heart('account-b').attrs['aria-pressed'], 'true');
+  assert.equal(heart(null).disabled, true);
 });

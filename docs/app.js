@@ -11,10 +11,12 @@ const logoutBtn = document.getElementById('logoutBtn');
 const adminLink = document.getElementById('adminLink');
 
 let authClient;
+let likesAccountId = null;
 const storeContent = document.getElementById('storeContent');
 const accessMessage = document.getElementById('accessMessage');
 
 function requireSignIn() {
+  likesAccountId = null;
   storeContent.hidden = true;
   productsGrid.innerHTML = '';
   window.location.replace('./signin.html');
@@ -31,7 +33,7 @@ function setAuthMessage(text, isError = false) {
 }
 
 function createProductCard(product) {
-  return window.createCollectionCard(product);
+  return window.createCollectionCard(product, likesAccountId);
 }
 
 async function fetchProducts() {
@@ -114,6 +116,7 @@ async function loadCurrentUser() {
   }
 
   const me = await response.json();
+  likesAccountId = data.session.user.id;
   adminLink.hidden = me.role !== 'admin';
   setAuthMessage(me.role === 'customer' ? 'Shop access approved.' : `Signed in as ${me.email} (${me.role}).`);
   return true;

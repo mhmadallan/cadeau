@@ -1,4 +1,5 @@
-window.createCollectionCard = function (product) {
+window.createCollectionCard = function (product, accountId) {
+  const likesKey = accountId ? 'cadeau-likes:' + accountId : null;
   const card = document.createElement('article');
   card.className = 'product-card collection-product';
   card.setAttribute('aria-label', product.name);
@@ -14,7 +15,8 @@ window.createCollectionCard = function (product) {
   like.type = 'button';
   like.className = 'collection-icon';
   const readLikes = () => {
-    try { const value = JSON.parse(localStorage.getItem('cadeau-likes') || '[]'); return Array.isArray(value) ? value : []; }
+    if (!likesKey) return [];
+    try { const value = JSON.parse(localStorage.getItem(likesKey) || '[]'); return Array.isArray(value) ? value : []; }
     catch { return []; }
   };
   const updateLike = () => {
@@ -24,10 +26,12 @@ window.createCollectionCard = function (product) {
     like.setAttribute('aria-label', (liked ? 'Unlike ' : 'Like ') + product.name);
   };
   updateLike();
+  like.disabled = !likesKey;
   like.addEventListener('click', () => {
+    if (!likesKey) return;
     try {
       const likes = readLikes();
-      localStorage.setItem('cadeau-likes', JSON.stringify(likes.includes(product.id) ? likes.filter(id => id !== product.id) : [...likes, product.id]));
+      localStorage.setItem(likesKey, JSON.stringify(likes.includes(product.id) ? likes.filter(id => id !== product.id) : [...likes, product.id]));
       updateLike();
     } catch { status.textContent = 'Could not save your favourite on this device.'; }
   });
