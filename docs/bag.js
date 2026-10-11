@@ -1,7 +1,14 @@
 window.CadeauBag = {
-  key: 'cadeau-bag-v1',
-  read() { try { const data = JSON.parse(localStorage.getItem(this.key) || '[]'); return Array.isArray(data) ? data.filter(i => typeof i.product_id === 'string' && typeof i.variant_id === 'string' && Number.isInteger(i.quantity) && i.quantity > 0 && i.quantity <= 99 && Number.isFinite(i.price)) : []; } catch { return []; } },
-  save(items) { localStorage.setItem(this.key, JSON.stringify(items)); this.render(); },
+  key: null,
+  setAccount(id) {
+    const next = id ? 'cadeau-bag-v2:' + id : null;
+    if (this.key === next) return;
+    this.key = next;
+    if (this.dialog?.open) this.dialog.close();
+    this.render();
+  },
+  read() { if (!this.key) return []; try { const data = JSON.parse(localStorage.getItem(this.key) || '[]'); return Array.isArray(data) ? data.filter(i => typeof i.product_id === 'string' && typeof i.variant_id === 'string' && Number.isInteger(i.quantity) && i.quantity > 0 && i.quantity <= 99 && Number.isFinite(i.price)) : []; } catch { return []; } },
+  save(items) { if (!this.key) throw new Error("Please sign in again before using your bag."); localStorage.setItem(this.key, JSON.stringify(items)); this.render(); },
   add(product, variant, quantity) {
     const items = this.read(), id = variant?.id || '', item = items.find(i => i.product_id === product.id && i.variant_id === id), stock = variant ? variant.stock : product.stock;
     if (quantity + (item?.quantity || 0) > Math.min(99, stock)) throw new Error('This quantity exceeds available stock.');

@@ -32,7 +32,7 @@ async function storefront({ session = null, authFailure = false, rejected = fals
         if (authFailure) throw new Error('Authentication unavailable');
         return { ok: true, json: async () => ({ supabaseUrl: 'test', supabaseAnonKey: 'test' }) };
       }
-      if (url.endsWith('/api/me')) return { ok: !rejected, status: rejected ? 401 : 200, json: async () => ({ email: 'user@example.com', role: 'user' }) };
+      if (url.endsWith('/api/me')) return { ok: !rejected, status: rejected ? 401 : 200, json: async () => ({ id: session?.user.id, email: 'user@example.com', role: 'user' }) };
       return { ok: true, json: async () => [{ id: 'product-1', name: 'Gift', price: 34, stock: 45 }] };
     },
   };

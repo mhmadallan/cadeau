@@ -8,8 +8,10 @@
     const session = (await auth.auth.getSession()).data.session;
     if (!session) return window.location.replace('signin.html');
     const request = async (path, options = {}) => { const r = await fetch(api + '/api/' + path, { ...options, headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + session.access_token }, signal: AbortSignal.timeout(30000) }); if (r.status === 401) { content.hidden = true; window.location.replace('signin.html'); throw new Error('Please sign in again.'); } const data = await r.json(); if (!r.ok) throw new Error(data.error || 'Please try again.'); return data; };
-    await request('me');
-    auth.auth.onAuthStateChange((event, current) => { if (!current) { content.hidden = true; window.location.replace('signin.html'); } });
+    const me = await request('me');
+    if (!me.id) throw new Error('Could not identify your account.');
+    window.CadeauBag.setAccount(me.id);
+    auth.auth.onAuthStateChange((event, current) => { if (!current || current.user.id !== session.user.id) { window.CadeauBag.setAccount(null); content.hidden = true; window.location.replace('signin.html'); } });
     if (document.body.dataset.page === 'product') {
       const id = new URLSearchParams(window.location.search).get('id');
       if (!id) throw new Error('Choose a product from the collection.');
@@ -19,9 +21,9 @@
       window.renderProductGallery(document.getElementById('gallery'), { ...product, image_urls: product.image_urls?.length ? product.image_urls : product.images });
     } else {
       const form = document.getElementById('checkoutForm'), summary = document.getElementById('summary');
-      let requestId = sessionStorage.getItem('cadeau-order-request');
+      let requestId = sessionStorage.getItem('cadeau-order-request:' + me.id);
       const snapshot = JSON.stringify(window.CadeauBag.read().map(i => ({product_id:i.product_id,variant_id:i.variant_id,quantity:i.quantity})));
-      if (!requestId || sessionStorage.getItem('cadeau-order-cart') !== snapshot) { requestId=crypto.randomUUID(); sessionStorage.setItem('cadeau-order-request',requestId); sessionStorage.setItem('cadeau-order-cart',snapshot); }
+      if (!requestId || sessionStorage.getItem('cadeau-order-cart:' + me.id) !== snapshot) { requestId=crypto.randomUUID(); sessionStorage.setItem('cadeau-order-request',requestId); sessionStorage.setItem('cadeau-order-cart',snapshot); }
       const items = window.CadeauBag.read();
       if (!items.length) { form.hidden=true; summary.textContent='Your bag is empty. Discover the collection to get started.'; }
       items.forEach(i => { const p=document.createElement('p'); p.textContent=`${i.name} · ${[i.color,i.size].filter(Boolean).join(' / ')} × ${i.quantity} — $${(i.price*i.quantity).toFixed(2)}`; summary.append(p); });

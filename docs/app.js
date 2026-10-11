@@ -17,6 +17,7 @@ const accessMessage = document.getElementById('accessMessage');
 
 function requireSignIn() {
   likesAccountId = null;
+  window.CadeauBag?.setAccount(null);
   storeContent.hidden = true;
   productsGrid.innerHTML = '';
   window.location.replace('./signin.html');
@@ -116,7 +117,9 @@ async function loadCurrentUser() {
   }
 
   const me = await response.json();
-  likesAccountId = data.session.user.id;
+  likesAccountId = me.id;
+  if (!likesAccountId) throw new Error("Could not identify your account. Please sign in again.");
+  window.CadeauBag?.setAccount(likesAccountId);
   adminLink.hidden = me.role !== 'admin';
   setAuthMessage(me.role === 'customer' ? 'Shop access approved.' : `Signed in as ${me.email} (${me.role}).`);
   return true;
@@ -169,6 +172,10 @@ async function init() {
     // reveal the catalog again, including after transient authentication failures.
     if (event === 'INITIAL_SESSION') return;
     if (!session) return requireSignIn();
+    storeContent.hidden = true;
+    productsGrid.innerHTML = '';
+    likesAccountId = null;
+    window.CadeauBag?.setAccount(null);
     setTimeout(() => { refreshSignedInStore(); }, 0);
   });
   await refreshSignedInStore();

@@ -36,11 +36,16 @@ test('bag persists separate variants, combines matching lines, and enforces stoc
  const context={window:{},document:{},localStorage:{getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)}};
  vm.runInNewContext(fs.readFileSync(require.resolve('../docs/bag.js'),'utf8'),context);
  const bag=context.window.CadeauBag;bag.render=()=>{};bag.dialog={showModal(){}};
+ bag.setAccount('account-a');
  const product={id,name:'T-shirt',price:40,stock:10};
  bag.add(product,{id:'black-s',color:'Black',size:'S',stock:4},2);
  bag.add(product,{id:'white-m',color:'White',size:'M',stock:2},1);
  bag.add(product,{id:'black-s',color:'Black',size:'S',stock:4},1);
  assert.equal(bag.read().length,2);assert.equal(bag.read()[0].quantity,3);assert.equal(bag.read()[1].color,'White');
  assert.throws(()=>bag.add(product,{id:'black-s',stock:4},2));
- const reload={window:{},document:{},localStorage:context.localStorage};vm.runInNewContext(fs.readFileSync(require.resolve('../docs/bag.js'),'utf8'),reload);assert.equal(reload.window.CadeauBag.read()[0].quantity,3);
+ const reload={window:{},document:{},localStorage:context.localStorage};vm.runInNewContext(fs.readFileSync(require.resolve('../docs/bag.js'),'utf8'),reload);reload.window.CadeauBag.render=()=>{};reload.window.CadeauBag.setAccount('account-a');assert.equal(reload.window.CadeauBag.read()[0].quantity,3);
+ bag.setAccount('account-b');assert.equal(bag.read().length,0);
+ bag.add(product,null,1);assert.equal(bag.read()[0].quantity,1);
+ bag.setAccount('account-a');assert.equal(bag.read()[0].quantity,3);
+ bag.setAccount(null);assert.equal(bag.read().length,0);assert.throws(()=>bag.add(product,null,1));
 });
