@@ -8,7 +8,7 @@ function setup() {
     setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(k, v) { this.events[k] = v; }, scrollTo() {}, play() { this.played = true; return Promise.resolve(); }, pause() { this.paused = true; }, focus() {},
   });
   const saved = new Map(), added = [];
-  const ctx = { URL, document: { createElement: element }, localStorage: { getItem: k => saved.get(k), setItem: (k,v) => saved.set(k,v) }, window: { CadeauBag: { add: (...args) => added.push(args) } } };
+  const ctx = { URL, document: { createElement: element }, localStorage: { getItem: k => saved.get(k), setItem: (k,v) => saved.set(k,v) }, window: { CadeauBag: { updateProductBadge() {}, add: (...args) => added.push(args) } } };
   for (const file of ['product-gallery', 'collection-card']) vm.runInNewContext(fs.readFileSync(require.resolve('../docs/' + file + '.js'), 'utf8'), ctx);
   return { ctx, element, added };
 }

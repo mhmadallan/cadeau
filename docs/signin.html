@@ -2,13 +2,13 @@
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shop access - Cadeau</title><link rel="stylesheet" href="./styles.css"></head>
 <body class="min-h-screen bg-slate-100 text-slate-900"><main class="mx-auto max-w-xl px-4 py-10">
 <h1 class="mb-4 text-3xl font-bold">Welcome to Cadeau</h1>
-<p class="mb-4">New here? Enter your name and WhatsApp number to request access. Once the admin approves you, enter your number and choose Enter shop.</p>
+<p class="mb-4">Enter your approved WhatsApp number to sign in.</p>
 <form id="phoneForm" class="space-y-4 rounded-xl bg-white p-6 shadow-sm">
-<label class="block">Your name (for new requests)<input id="customerName" autocomplete="name" maxlength="100" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
+<label id="requestNameField" hidden>Your name<input id="customerName" autocomplete="name" maxlength="100" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
 <label class="block">WhatsApp number with country code<input id="customerPhone" type="tel" autocomplete="tel" placeholder="+49 176 12345678" required maxlength="30" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
-<p class="text-sm text-slate-600">By requesting access, you agree to receive a WhatsApp notification about your approval.</p>
-<button type="submit" value="login" class="rounded-lg bg-emerald-600 px-4 py-2 text-white">Enter shop</button>
-<button type="submit" value="request" class="rounded-lg bg-slate-900 px-4 py-2 text-white">Request access</button>
+<p id="requestConsent" hidden class="text-sm text-slate-600">By requesting access, you agree to receive a WhatsApp notification about your approval.</p>
+<button id="phoneSubmit" type="submit" value="login" class="rounded-lg bg-emerald-600 px-4 py-2 text-white">Enter shop</button>
+<button id="accessModeToggle" type="button" class="text-sm underline" aria-expanded="false">New customer? Request access</button>
 <p id="phoneMessage" role="status" aria-live="polite"></p></form>
 <a href="./email-signin.html" class="mt-6 inline-block text-sm underline">Admin sign-in</a>
-</main><script src="./config.js"></script><script src="./customer-session.js"></script><script src="./phone-signin.js"></script></body></html>
+</main><script src="./config.js"></script><script src="./customer-session.js"></script><script src="./phone-signin.js?v=phone-only-login-1"></script></body></html>

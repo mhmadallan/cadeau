@@ -1,9 +1,25 @@
 const phoneApi = (window.APP_CONFIG?.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
 const phoneForm = document.getElementById('phoneForm');
 const phoneMessage = document.getElementById('phoneMessage');
+let requestingAccess = false;
+const nameField = document.getElementById('requestNameField');
+const nameInput = document.getElementById('customerName');
+const modeToggle = document.getElementById('accessModeToggle');
+modeToggle.addEventListener('click', () => {
+  requestingAccess = !requestingAccess;
+  nameField.hidden = !requestingAccess;
+  nameInput.required = requestingAccess;
+  nameInput.disabled = !requestingAccess;
+  document.getElementById('requestConsent').hidden = !requestingAccess;
+  document.getElementById('phoneSubmit').textContent = requestingAccess ? 'Request access' : 'Enter shop';
+  modeToggle.textContent = requestingAccess ? 'Already approved? Sign in' : 'New customer? Request access';
+  modeToggle.setAttribute('aria-expanded', String(requestingAccess));
+  phoneMessage.textContent = '';
+});
+nameInput.disabled = true;
 phoneForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const requestAccess = event.submitter?.value === 'request';
+  const requestAccess = requestingAccess;
   const name = document.getElementById('customerName').value.trim();
   const phone = document.getElementById('customerPhone').value.trim();
   if (requestAccess && !name) { phoneMessage.textContent = 'Please enter your name to request access.'; return; }
@@ -12,7 +28,7 @@ phoneForm.addEventListener('submit', async (event) => {
   phoneMessage.textContent = requestAccess ? 'Submitting request...' : 'Checking access...';
   try {
     const response = await fetch(`${phoneApi}/api/access/${requestAccess ? 'request' : 'login'}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, phone }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestAccess ? { name, phone } : { phone }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Please try again.');

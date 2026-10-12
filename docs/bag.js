@@ -16,8 +16,15 @@ window.CadeauBag = {
     else items.push({ product_id: product.id, variant_id: id, name: product.name, color: variant?.color || '', size: variant?.size || '', price: Number(product.price), image: product.image_url || '', quantity });
     this.save(items); this.dialog.showModal();
   },
+  updateProductBadge(badge, items = this.read()) {
+    const quantity = items.filter(item => item.product_id === badge.getAttribute('data-product-bag-count')).reduce((sum, item) => sum + item.quantity, 0);
+    badge.hidden = quantity === 0;
+    badge.textContent = quantity ? String(quantity) : '';
+    badge.setAttribute('aria-label', quantity + ' in your bag');
+  },
   render() {
     const items = this.read(); document.querySelectorAll('[data-bag-count]').forEach(el => el.textContent = items.reduce((n,i) => n + i.quantity,0));
+    document.querySelectorAll('[data-product-bag-count]').forEach(badge => this.updateProductBadge(badge, items));
     this.lines.replaceChildren();
     items.forEach((item,index) => {
       const row = document.createElement('div'); row.className = 'bag-line';

@@ -40,6 +40,13 @@ window.createCollectionCard = function (product, accountId) {
   add.className = 'collection-icon';
   add.setAttribute('aria-label', 'Add ' + product.name + ' to cart');
   add.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 3h2l3 13h11l2-9H6M10 3v6m-3-3h6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>';
+  const badge = document.createElement('span');
+  badge.className = 'product-bag-badge';
+  badge.setAttribute('data-product-bag-count', product.id);
+  badge.setAttribute('aria-live', 'polite');
+  badge.hidden = true;
+  add.appendChild(badge);
+  window.CadeauBag.updateProductBadge(badge);
   const variants = product.variants || [];
   const options = document.createElement('select');
   options.className = 'collection-variants';

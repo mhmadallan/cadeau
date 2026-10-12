@@ -23,3 +23,5 @@
 .gallery-arrow{width:40px;height:48px;border:0;border-radius:10px;background:rgba(255,255,255,.75);box-shadow:none;backdrop-filter:blur(6px);z-index:1}
 .gallery-arrow:hover{background:#fff}.gallery-prev{left:8px}.gallery-next{right:8px}
 .collection-product .gallery-counter,.gallery-counter{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);margin:0;padding:4px 10px;border-radius:20px;background:#ffffffd9;color:#334155;font-size:11px;pointer-events:none}
+
+.collection-icon{position:relative}.product-bag-badge{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;display:grid;place-items:center;border-radius:999px;background:#344a3d;color:#fff;font:600 11px/1 system-ui;border:2px solid white;pointer-events:none}.product-bag-badge[hidden]{display:none}
