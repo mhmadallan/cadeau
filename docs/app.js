@@ -12,6 +12,18 @@ const adminLink = document.getElementById('adminLink');
 
 let authClient;
 let likesAccountId = null;
+const wishlistPage = document.body?.dataset.page === 'wishlist';
+let wishlistProducts = [];
+function renderWishlist() {
+  productsGrid.innerHTML = '';
+  if (!likesAccountId || storeContent.hidden) return;
+  let ids = [];
+  try { const saved = JSON.parse(localStorage.getItem('cadeau-likes:' + likesAccountId) || '[]'); if (Array.isArray(saved)) ids = saved; } catch {}
+  const liked = wishlistProducts.filter(product => ids.includes(product.id));
+  liked.forEach(product => productsGrid.appendChild(createProductCard(product)));
+  setMessage(liked.length ? liked.length + ' saved item(s)' : 'Your wishlist is empty. Tap a heart in the collection to save a favourite.');
+}
+if (wishlistPage) window.addEventListener('storage', event => { if (event.key === null || event.key === 'cadeau-likes:' + likesAccountId) renderWishlist(); });
 const storeContent = document.getElementById('storeContent');
 const accessMessage = document.getElementById('accessMessage');
 
@@ -34,7 +46,7 @@ function setAuthMessage(text, isError = false) {
 }
 
 function createProductCard(product) {
-  return window.createCollectionCard(product, likesAccountId);
+  return window.createCollectionCard(product, likesAccountId, wishlistPage ? renderWishlist : undefined);
 }
 
 async function fetchProducts() {
@@ -56,6 +68,7 @@ async function fetchProducts() {
     if (current.data.session?.user.id !== data.session.user.id) return requireSignIn();
 
     productsGrid.innerHTML = '';
+    if (wishlistPage) { wishlistProducts = products; renderWishlist(); return; }
     if (!products.length) {
       productsGrid.innerHTML = '<p class="text-slate-600">No products available yet.</p>';
       setMessage('No products found.');

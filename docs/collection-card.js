@@ -1,4 +1,4 @@
-window.createCollectionCard = function (product, accountId) {
+window.createCollectionCard = function (product, accountId, onLikesChanged) {
   const likesKey = accountId ? 'cadeau-likes:' + accountId : null;
   const card = document.createElement('article');
   card.className = 'product-card collection-product';
@@ -33,6 +33,7 @@ window.createCollectionCard = function (product, accountId) {
       const likes = readLikes();
       localStorage.setItem(likesKey, JSON.stringify(likes.includes(product.id) ? likes.filter(id => id !== product.id) : [...likes, product.id]));
       updateLike();
+      if (onLikesChanged) onLikesChanged();
     } catch { status.textContent = 'Could not save your favourite on this device.'; }
   });
   const add = document.createElement('button');

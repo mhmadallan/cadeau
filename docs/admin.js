@@ -232,6 +232,7 @@ async function init() {
   if (!allowed) return;
 
   await fetchProducts();
+  if (window.loadSocialSettings) await window.loadSocialSettings();
   if (window.loadAdminOrders) await window.loadAdminOrders();
   if (window.loadAccessRequests) await window.loadAccessRequests();
 }

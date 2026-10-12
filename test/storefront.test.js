@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-async function storefront({ session = null, authFailure = false, rejected = false } = {}) {
+async function storefront({ session = null, authFailure = false, rejected = false, wishlist = false, savedLikes = {} } = {}) {
   function element() {
     return { hidden: true, children: [], textContent: '', innerHTML: '',
       addEventListener() {}, setAttribute() {}, appendChild(child) { this.children.push(child); } };
@@ -13,12 +13,15 @@ async function storefront({ session = null, authFailure = false, rejected = fals
   const redirects = [];
   let authCallback;
   const document = {
+    body: { dataset: { page: wishlist ? "wishlist" : "collection" } },
     getElementById(id) { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); },
     createElement: element,
   };
   const context = {
     document, setTimeout, AbortSignal,
+    localStorage: { getItem: key => JSON.stringify(savedLikes[key] || []) },
     window: {
+      addEventListener() {},
       createCollectionCard: () => element(),
       APP_CONFIG: {}, location: { replace: (url) => redirects.push(url) },
       supabase: { createClient: () => ({ auth: {
@@ -82,4 +85,13 @@ test('a successful later authentication check restores the hidden catalog', asyn
   assert.equal(page.elements.get('storeContent').hidden, false);
   assert.equal(page.elements.get('accessMessage').hidden, true);
   assert.equal(page.elements.get('productsGrid').children.length, 1);
+});
+
+test('wishlist only renders likes belonging to the verified account', async () => {
+  const savedLikes = { 'cadeau-likes:user-1': ['product-1'], 'cadeau-likes:user-2': [] };
+  const first = await storefront({ wishlist: true, savedLikes, session: { access_token: 'a', user: { id: 'user-1' } } });
+  assert.equal(first.elements.get('productsGrid').children.length, 1);
+  const second = await storefront({ wishlist: true, savedLikes, session: { access_token: 'b', user: { id: 'user-2' } } });
+  assert.equal(second.elements.get('productsGrid').children.length, 0);
+  assert.match(second.elements.get('message').textContent, /wishlist is empty/);
 });

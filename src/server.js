@@ -1,4 +1,5 @@
 const express = require('express');
+const { socialSettings } = require('./social-settings');
 const { productMedia } = require('./product-media');
 const { createProductUpload } = require('./product-upload');
 const cors = require('cors');
@@ -114,6 +115,11 @@ async function requireAdmin(req, res, next) {
   req.userRole = result.role;
   return next();
 }
+
+const socialLinks = socialSettings(supabase);
+app.get('/api/social-links', socialLinks.read);
+app.get('/api/admin/social-links', requireAdmin, socialLinks.read);
+app.put('/api/admin/social-links', requireAdmin, socialLinks.save);
 
 app.get('/api/config', (_req, res) => {
   if (!supabaseUrl || !supabaseAnonKey) {
