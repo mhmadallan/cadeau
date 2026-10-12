@@ -17,6 +17,8 @@ window.renderProductGallery = function (container, product) {
     stage.setAttribute('aria-label', product.name + ' images');
     const main = document.createElement('img');
     main.className = 'gallery-main';
+    main.loading = 'lazy';
+    main.decoding = 'async';
     const video = document.createElement('video');
     video.className = 'gallery-main';
     video.controls = true;
@@ -25,7 +27,7 @@ window.renderProductGallery = function (container, product) {
     video.loop = true;
     video.preload = 'none';
     video.hidden = true;
-    if (safe(product.video_url)) video.src = product.video_url;
+
     video.setAttribute('aria-label', product.name + ' video');
     stage.appendChild(main);
     stage.appendChild(video);
@@ -36,13 +38,14 @@ window.renderProductGallery = function (container, product) {
 
     const show = index => {
       current = (index + slides.length) % slides.length;
-      video.pause();
+      if (!video.hidden) video.pause();
       main.hidden = slides[current].video;
       video.hidden = !slides[current].video;
       if (!slides[current].video) main.src = slides[current].src;
       main.alt = product.name + ', image ' + (current + 1);
       counter.textContent = (current + 1) + ' / ' + slides.length;
       if (slides[current].video) {
+        if (!video.getAttribute('src')) video.src = slides[current].src;
         const playback = video.play();
         if (playback) playback.catch(() => {});
       }

@@ -75,12 +75,9 @@ async function fetchProducts() {
       return;
     }
 
-    products.forEach((product) => {
-      productsGrid.appendChild(createProductCard(product));
-    });
-
     setMessage('');
     if (typeof document.querySelectorAll === 'function') setupCollections(products);
+    else products.forEach(product => productsGrid.appendChild(createProductCard(product)));
 
   } catch (error) {
     setMessage(error.message, true);
@@ -210,15 +207,24 @@ function setupCollections(products) {
   products.forEach(p => { const id = key(p.collection); if (id && !categories.has(id)) categories.set(id, p.collection.trim()); });
   if (selectedCategory && !categories.has(selectedCategory)) selectedCategory = '';
   const label = document.createElement('label');
-  label.textContent = 'Category ';
+  label.className = 'category-control';
+  const caption = document.createElement('span');
+  caption.className = 'filter-caption';
+  caption.textContent = 'Browse by category';
+  label.appendChild(caption);
   const select = document.createElement('select');
-  select.className = 'option';
+  select.className = 'category-select';
   select.setAttribute('aria-label', 'Filter by category');
   const option = (value, text) => { const item = document.createElement('option'); item.value = value; item.textContent = text; select.appendChild(item); };
   option('', 'All categories');
   [...categories].sort((a,b) => a[1].localeCompare(b[1])).forEach(([id,name]) => option(id, name));
   select.value = selectedCategory;
   label.appendChild(select); filters.appendChild(label);
+  const segments = document.createElement('div');
+  segments.className = 'filter-segments';
+  segments.setAttribute('role', 'group');
+  segments.setAttribute('aria-label', 'Product selection');
+  filters.appendChild(segments);
   const buttons = [];
   const show = () => {
     productsGrid.replaceChildren();
@@ -230,7 +236,7 @@ function setupCollections(products) {
   select.addEventListener('change', () => { selectedCategory = select.value; show(); });
   for (const [id,text] of [['all','All pieces'],['new','New arrivals'],['featured','Featured']]) {
     const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
-    button.addEventListener('click', () => { selectedEdit = id; show(); }); buttons.push([button,id]); filters.appendChild(button);
+    button.addEventListener('click', () => { selectedEdit = id; show(); }); buttons.push([button,id]); segments.appendChild(button);
   }
   [...categories].sort((a,b) => a[1].localeCompare(b[1])).forEach(([id,name]) => {
     const link = document.createElement('a'); link.className = 'collection-card'; link.textContent = name; link.href = '#products';
