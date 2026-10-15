@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Place Order - Cadeau</title>
   <link rel="stylesheet" href="./styles.css" />
-  <link rel="stylesheet" href="./product-gallery.css?v=mobile-controls-1">
+  <link rel="stylesheet" href="./product-gallery.css?v=swipe-no-prices-2">
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900">
   <p id="accessMessage" role="status" class="p-4">Checking your sign-in...</p>
@@ -34,7 +34,6 @@
           <textarea name="notes" maxlength="300" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></textarea>
         </label>
       </fieldset>
-      <p id="orderTotal" class="font-semibold"></p>
       <p class="text-sm text-slate-600">Your order and delivery details will be shared with the store through its configured messaging service. No payment is collected here; the store will contact you to arrange payment and delivery.</p>
       <button id="placeOrder" type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-white disabled:opacity-50">Place order</button>
     </form>
@@ -42,7 +41,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
   <script src="./customer-session.js"></script>
-  <script src="./product-gallery.js"></script>
-  <script src="./order.js?v=phone-access-1"></script>
+  <script src="./product-gallery.js?v=swipe-no-prices-2"></script>
+  <script src="./order.js?v=swipe-no-prices-2"></script>
 </body>
 </html>

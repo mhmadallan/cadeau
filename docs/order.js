@@ -11,9 +11,7 @@ let pendingOrder;
 let pendingKey;
 
 function showOrderMessage(text) { orderMessage.textContent = text; }
-function updateTotal() {
-  document.getElementById('orderTotal').textContent = `Product total: $${(Number(orderProduct.price) * Number(orderForm.elements.quantity.value)).toFixed(2)}`;
-}
+
 
 async function initOrder() {
   if (!orderProductId) throw new Error('No product selected. Please return to the store.');
@@ -49,7 +47,7 @@ async function initOrder() {
   document.getElementById('protectedContent').hidden = false;
   document.getElementById('accessMessage').hidden = true;
   orderProduct = response.ok ? await response.json() : { name: 'Previously submitted order', price: 0, stock: 0 };
-  document.getElementById('productSummary').textContent = `${orderProduct.name} — $${Number(orderProduct.price).toFixed(2)} each`;
+  document.getElementById('productSummary').textContent = orderProduct.name;
   window.renderProductGallery(document.getElementById('productGallery'), orderProduct);
   if (pendingOrder) {
     for (const [key, value] of Object.entries(pendingOrder)) {
@@ -63,10 +61,8 @@ async function initOrder() {
     orderForm.elements.quantity.max = Math.min(99, Number(orderProduct.stock));
   }
   orderForm.hidden = false;
-  updateTotal();
 }
 
-orderForm.elements.quantity.addEventListener('input', updateTotal);
 orderForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   placeOrderButton.disabled = true;
@@ -100,7 +96,7 @@ orderForm.addEventListener('submit', async (event) => {
     }
     sessionStorage.removeItem(pendingKey);
     orderForm.hidden = true;
-    showOrderMessage(`Order ${result.id} received. Product total: $${Number(result.total).toFixed(2)}. The store will contact you to arrange payment and delivery.`);
+    showOrderMessage(`Order ${result.id} received. The store will contact you to arrange payment and delivery.`);
   } catch (error) {
     showOrderMessage(`${error.message}${pendingOrder ? ' Retry to confirm the same order; do not start a new order.' : ''}`);
     placeOrderButton.textContent = pendingOrder ? 'Confirm order' : 'Place order';

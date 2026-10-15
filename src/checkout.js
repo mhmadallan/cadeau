@@ -1,3 +1,4 @@
+const { getImageLink } = require('./whatsapp');
 const { getNotificationConfig } = require('./notifications');
 const { NotificationConfigError } = require('./notification-config-error');
 
@@ -12,7 +13,10 @@ function getCheckoutConfig(env = process.env) {
 
 function orderLink(order, recipient) {
   const items = order.items?.length ? order.items : [order];
-  const lines = items.map(item => [item.product_name, item.color, item.size].filter(Boolean).join(' / ') + ' x ' + item.quantity);
+  const lines = items.map(item => {
+    const image = getImageLink(item.image_url || item.product_image_url);
+    return [item.product_name, item.color, item.size].filter(Boolean).join(' / ') + ' x ' + item.quantity + (image ? '\nProduct image: ' + image : '');
+  });
   const message = ['Cadeau order ' + order.id, ...lines,
     'Name: ' + order.customer_name, 'Phone: ' + order.customer_phone,
     'Delivery address: ' + order.delivery_address, 'Notes: ' + (order.notes || 'None')].join('\n');

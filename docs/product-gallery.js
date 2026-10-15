@@ -51,6 +51,21 @@ window.renderProductGallery = function (container, product) {
       }
     };
     if (slides.length > 1) {
+      let touchStart = null;
+      stage.addEventListener('touchstart', event => {
+        touchStart = null;
+        if (event.touches.length !== 1 || (event.target !== main && event.target !== video)) return;
+        touchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+      }, { passive: true });
+      stage.addEventListener('touchend', event => {
+        const start = touchStart;
+        touchStart = null;
+        if (!start || event.touches.length || !event.changedTouches.length) return;
+        const dx = event.changedTouches[0].clientX - start.x;
+        const dy = event.changedTouches[0].clientY - start.y;
+        if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy) * 1.5) show(current + (dx < 0 ? 1 : -1));
+      }, { passive: true });
+      stage.addEventListener('touchcancel', () => { touchStart = null; }, { passive: true });
       for (const [label, symbol, step] of [['Previous slide', '\u2039', -1], ['Next slide', '\u203a', 1]]) {
         const arrow = document.createElement('button');
         arrow.type = 'button';

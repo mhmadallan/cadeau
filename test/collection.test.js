@@ -53,3 +53,15 @@ test('likes are isolated per account and ignore the old shared likes', () => {
   assert.equal(heart('account-b').attrs['aria-pressed'], 'true');
   assert.equal(heart(null).disabled, true);
 });
+
+test('swipes navigate images and video while vertical scrolling and taps do not', () => {
+  const { ctx, element } = setup(), root = element();
+  ctx.window.renderProductGallery(root, { name: 'Gift', image_url: 'https://example.com/a.jpg', video_url: 'https://example.com/v.mp4' });
+  const stage=root.children[0], [image,video]=stage.children;
+  const swipe=(target,x,y)=>{stage.events.touchstart({ target, touches:[{clientX:100,clientY:100}] });stage.events.touchend({touches:[],changedTouches:[{clientX:x,clientY:y}]});};
+  swipe(image,90,100); assert.equal(video.hidden,true);
+  swipe(image,70,200); assert.equal(video.hidden,true);
+  swipe(stage,10,100); assert.equal(video.hidden,true);
+  swipe(image,10,100); assert.equal(video.hidden,false); assert.equal(video.played,true);
+  swipe(video,190,100); assert.equal(video.hidden,true); assert.equal(video.paused,true);
+});

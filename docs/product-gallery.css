@@ -35,3 +35,5 @@
   .product-gallery .gallery-next{grid-column:3}
   .product-gallery .gallery-counter{position:static;grid-column:2;grid-row:2;transform:none;margin:0;padding:0;background:transparent;text-align:center}
 }
+
+@media(max-width:760px){.product-gallery .gallery-arrow{display:none}.product-gallery .gallery-main{touch-action:pan-y pinch-zoom}.product-gallery .gallery-counter{grid-column:1/-1;padding:8px 0}}
