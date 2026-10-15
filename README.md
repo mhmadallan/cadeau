@@ -364,3 +364,8 @@ The editorial homepage uses external Unsplash placeholder photography and Google
 
 ### Product media uploads
 Run `supabase/product-media.sql` and `supabase/product-images.sql` in Supabase SQL Editor before deployment. Admins can combine a cover URL, up to 12 gallery image URLs, JPEG/PNG device uploads (5 MB each), and an optional direct HTTPS video URL. Save the product after uploading. The cover image is used for catalog cards and notifications. Uploaded images are publicly readable; uploads require admin authentication. Unattached uploads remain in Storage until manually removed.
+
+### WhatsApp checkout link
+Set `ORDER_CHECKOUT_MODE=whatsapp_link` on Render (and locally) to open a prepared message to `WHATSAPP_RECIPIENT_NUMBER` (international digits, no +). No API token or template is needed for order checkout in this mode. Restart/redeploy after changing environment variables. Set `ORDER_CHECKOUT_MODE=api` to restore the existing `ORDER_NOTIFICATION_PROVIDER` behavior; keep all API credentials in place.
+
+Orders are saved and stock is reserved before opening WhatsApp. The customer must press Send; notification status stays pending because the website cannot detect sending or delivery. Unsent orders still appear in the dashboard. The message contains saved order items, variants, quantities, total and customer details; click-to-chat does not attach product images. Other API features (such as access notifications) are unchanged.

@@ -230,3 +230,27 @@ test('phone customers use their own order transaction, not Supabase Auth identit
   assert.equal(db.state.lastRpc.args.p_customer_id, 'user-123');
   assert.equal(db.state.lastRpc.args.p_user_id, undefined);
 });
+
+const { getCheckoutConfig, orderLink } = require('../src/checkout');
+test('link checkout needs only a recipient and preserves API opt-in', () => {
+  const config = getCheckoutConfig({ ORDER_CHECKOUT_MODE: 'whatsapp_link', WHATSAPP_RECIPIENT_NUMBER: '491234567890' });
+  assert.equal(config.provider, 'whatsapp_link');
+  assert.throws(() => getCheckoutConfig({ ORDER_CHECKOUT_MODE: 'whatsapp_link', WHATSAPP_RECIPIENT_NUMBER: 'bad' }));
+  assert.throws(() => getCheckoutConfig({ ORDER_CHECKOUT_MODE: 'invalid' }));
+  assert.throws(() => getCheckoutConfig({ ORDER_CHECKOUT_MODE: 'api' }));
+  const link = new URL(orderLink({ ...order, items: [{ product_name: 'Shirt & top', color: 'Blue', size: 'M', quantity: 2 }], notes: 'A&B #1' }, config.recipient));
+  assert.equal(link.origin, 'https://wa.me');
+  assert.equal(link.pathname, '/491234567890');
+  assert.match(link.searchParams.get('text'), /Shirt & top \/ Blue \/ M x 2/);
+  assert.match(link.searchParams.get('text'), /A&B #1/);
+  assert.match(link.searchParams.get('text'), /Test street 1\nBerlin/);
+});
+test('link checkout saves once, leaves pending, and never calls notification API', async () => {
+  for (const db of [database(), database({ existing: order }), database({ created: false })]) {
+    const result = await request(db, { getConfig: () => ({ provider: 'whatsapp_link', recipient: '491234567890' }), notify: () => assert.fail('No API calls in link mode') });
+    assert.equal(result.body.notification_status, 'pending');
+    assert.match(result.body.checkout_url, /^https:\/\/wa.me\/491234567890\?text=/);
+    assert.equal(db.state.updates.length, 0);
+    assert.ok(db.state.rpcCalls <= 1);
+  }
+});

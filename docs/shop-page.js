@@ -23,13 +23,19 @@
       const form = document.getElementById('checkoutForm'), summary = document.getElementById('summary');
       let requestId = sessionStorage.getItem('cadeau-order-request:' + me.id);
       const snapshot = JSON.stringify(window.CadeauBag.read().map(i => ({product_id:i.product_id,variant_id:i.variant_id,quantity:i.quantity})));
-      if (!requestId || sessionStorage.getItem('cadeau-order-cart:' + me.id) !== snapshot) { requestId=crypto.randomUUID(); sessionStorage.setItem('cadeau-order-request',requestId); sessionStorage.setItem('cadeau-order-cart',snapshot); }
+      if (!requestId || sessionStorage.getItem('cadeau-order-cart:' + me.id) !== snapshot) { requestId=crypto.randomUUID(); sessionStorage.setItem('cadeau-order-request:' + me.id,requestId); sessionStorage.setItem('cadeau-order-cart:' + me.id,snapshot); }
       const items = window.CadeauBag.read();
       if (!items.length) { form.hidden=true; summary.textContent='Your bag is empty. Discover the collection to get started.'; }
       items.forEach(i => { const p=document.createElement('p'); p.textContent=`${i.name} · ${[i.color,i.size].filter(Boolean).join(' / ')} × ${i.quantity} — $${(i.price*i.quantity).toFixed(2)}`; summary.append(p); });
       const total=document.createElement('h3'); total.textContent='Subtotal $'+items.reduce((n,i)=>n+i.price*i.quantity,0).toFixed(2); if(items.length) summary.append(total);
       form.onsubmit=async e => { e.preventDefault(); const button=form.querySelector('button'); button.disabled=true; status.textContent='Confirming your order…';
-        try { const body=Object.fromEntries(new FormData(form)); body.request_id=requestId; body.items=JSON.parse(snapshot); const order=await request('orders',{method:'POST',body:JSON.stringify(body)}); window.CadeauBag.save([]); sessionStorage.removeItem('cadeau-order-request'); sessionStorage.removeItem('cadeau-order-cart'); form.hidden=true; status.textContent=`Thank you. Your order ${order.id} is confirmed. Total: $${Number(order.total).toFixed(2)}. ${order.notification_status === 'accepted' ? 'We’ll contact you to arrange payment and delivery.' : 'Your order is saved. The store can review it in the dashboard.'}`; }
+        try { const body=Object.fromEntries(new FormData(form)); body.request_id=requestId; body.items=JSON.parse(snapshot); const order=await request('orders',{method:'POST',body:JSON.stringify(body)}); window.CadeauBag.save([]); sessionStorage.removeItem('cadeau-order-request:' + me.id); sessionStorage.removeItem('cadeau-order-cart:' + me.id); form.hidden=true; if (order.checkout_url) {
+          status.textContent='Your order is saved. Press Send in WhatsApp to notify the store. Opening the chat does not send the message automatically.';
+          const link=document.createElement('a'); link.href=order.checkout_url; link.textContent='Open WhatsApp to send order'; link.className='solid'; link.rel='noreferrer';
+          summary.append(link);
+          window.location.assign(order.checkout_url);
+          return;
+        } status.textContent=`Thank you. Your order ${order.id} is confirmed. Total: $${Number(order.total).toFixed(2)}. ${order.notification_status === 'accepted' ? 'We’ll contact you to arrange payment and delivery.' : 'Your order is saved. The store can review it in the dashboard.'}`; }
         catch(e) { status.textContent=e.message; button.disabled=false; }
       };
     }

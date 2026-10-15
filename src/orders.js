@@ -1,4 +1,5 @@
-const { getNotificationConfig, notifyOrder } = require('./notifications');
+const { getCheckoutConfig, orderLink } = require('./checkout');
+const { notifyOrder } = require('./notifications');
 const { getImageLink } = require('./whatsapp');
 const { NotificationConfigError } = require('./notification-config-error');
 
@@ -35,7 +36,7 @@ function validateOrder(body) {
   return result;
 }
 
-function createOrderHandler(supabase, { getConfig = getNotificationConfig, notify = notifyOrder } = {}) {
+function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = notifyOrder } = {}) {
   return async (req, res) => {
     let payload;
     try { payload = validateOrder(req.body); }
@@ -45,8 +46,12 @@ function createOrderHandler(supabase, { getConfig = getNotificationConfig, notif
     const existing = await supabase.from('orders').select('*')
       .eq(req.authType === 'phone' ? 'customer_id' : 'user_id', req.user.id).eq('request_id', payload.request_id).maybeSingle();
     if (existing.error) return res.status(503).json({ error: 'Ordering is unavailable. Please try again later.' });
-    const summary = (order) => ({ id: order.id, total: order.total, notification_status: order.notification_status });
-    if (existing.data) return res.json(summary(existing.data));
+    const summary = (order, config) => ({ id: order.id, total: order.total, notification_status: order.notification_status, ...(config?.provider === 'whatsapp_link' ? { checkout_url: orderLink(order, config.recipient) } : {}) });
+    if (existing.data) {
+      let retryConfig;
+      try { retryConfig = getConfig(); } catch {}
+      return res.json(summary(existing.data, retryConfig));
+    }
 
     let config;
     try { config = getConfig(); }
@@ -80,7 +85,9 @@ function createOrderHandler(supabase, { getConfig = getNotificationConfig, notif
       return res.status(known[error.message] ? 409 : 503).json({ error: known[error.message] || 'Could not save the order. Retry using the same form.' });
     }
     const order = data.order;
-    if (!data.created) return res.json(summary(order));
+    if (!data.created) return res.json(summary(order, config));
+    // A prepared link is not a sent message; leave notification_status pending.
+    if (config.provider === 'whatsapp_link') return res.status(201).json(summary(order, config));
 
     if (config.provider === 'telegram') {
       const tracking = await supabase.from('orders').update({ notification_provider: 'telegram' }).eq('id', order.id);
