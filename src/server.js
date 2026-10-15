@@ -1,3 +1,4 @@
+const { createProductShare } = require('./product-share');
 const express = require('express');
 const { socialSettings } = require('./social-settings');
 const { productMedia } = require('./product-media');
@@ -48,6 +49,7 @@ app.get('/api/webhooks/whatsapp', whatsappWebhook.verify);
 app.post('/api/webhooks/whatsapp', express.raw({ type: 'application/json', limit: '1mb' }), whatsappWebhook.receive);
 app.use(express.json());
 
+app.get('/p/:id', createProductShare(supabase));
 const tableName = 'products';
 const customerAccess = createCustomerAccess(supabase);
 

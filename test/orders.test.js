@@ -255,9 +255,9 @@ test('link checkout saves once, leaves pending, and never calls notification API
   }
 });
 
-test('prepared message includes safe main-image links and no monetary amounts', () => {
+test('prepared message includes website product links and no monetary amounts', () => {
   const text = new URL(orderLink({ ...order, items:[{product_name:'Gift', quantity:2, image_url:'https://example.com/main.jpg', total:25}] }, '491234567890')).searchParams.get('text');
-  assert.match(text, /https:\/\/example.com\/main.jpg/);
+  assert.ok(text.includes('https://cadeau-hbmt.onrender.com/p/' + order.product_id));
   assert.doesNotMatch(text, /Total|Subtotal|\$/);
   const unsafe = new URL(orderLink({...order, image_url:'javascript:alert(1)'}, '491234567890')).searchParams.get('text');
   assert.doesNotMatch(unsafe, /javascript:/);

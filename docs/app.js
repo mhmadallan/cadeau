@@ -1,3 +1,9 @@
+let sharedProduct = '';
+try {
+  const hash = window.location.hash || '';
+  if (/^#product-[0-9a-f-]{36}$/i.test(hash)) sessionStorage.setItem('cadeau-shared-product', hash.slice(1));
+  sharedProduct = sessionStorage.getItem('cadeau-shared-product') || '';
+} catch {}
 const appConfig = window.APP_CONFIG || {};
 const apiBaseUrl = (appConfig.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '');
 const apiBase = `${apiBaseUrl}/api/products`;
@@ -46,7 +52,9 @@ function setAuthMessage(text, isError = false) {
 }
 
 function createProductCard(product) {
-  return window.createCollectionCard(product, likesAccountId, wishlistPage ? renderWishlist : undefined);
+  const card = window.createCollectionCard(product, likesAccountId, wishlistPage ? renderWishlist : undefined);
+  card.id = 'product-' + product.id;
+  return card;
 }
 
 async function fetchProducts() {
@@ -231,6 +239,14 @@ function setupCollections(products) {
     const matching = products.filter(p => (!selectedCategory || key(p.collection) === selectedCategory) && (selectedEdit === 'all' || (selectedEdit === 'new' ? p.new_arrival : p.featured)));
     matching.forEach(p => productsGrid.appendChild(createProductCard(p)));
     setMessage(matching.length ? matching.length + ' product(s)' : 'No products match these filters. Choose another category or All pieces.');
+    if (sharedProduct) {
+      const card = document.getElementById(sharedProduct);
+      if (card) {
+        requestAnimationFrame(() => card.scrollIntoView({ block: 'center' }));
+        sharedProduct = '';
+        try { sessionStorage.removeItem('cadeau-shared-product'); } catch {}
+      }
+    }
     buttons.forEach(([button,id]) => { button.classList.toggle('active', selectedEdit === id); button.setAttribute('aria-pressed', String(selectedEdit === id)); });
   };
   select.addEventListener('change', () => { selectedCategory = select.value; show(); });
