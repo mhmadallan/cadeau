@@ -20,7 +20,9 @@ function getWhatsAppConfig(env = process.env) {
   config.headerType = (env.WHATSAPP_TEMPLATE_HEADER || 'none').trim().toLowerCase();
   if (!['none', 'image'].includes(config.headerType)) invalid.push('WHATSAPP_TEMPLATE_HEADER');
   config.perItem = read('WHATSAPP_ORDER_PER_ITEM').toLowerCase() === 'true';
-  if (config.perItem && config.headerType !== 'image' && !config.imageTemplate) invalid.push('WHATSAPP_TEMPLATE_HEADER or WHATSAPP_IMAGE_TEMPLATE_NAME');
+  config.collage = read('WHATSAPP_ORDER_COLLAGE').toLowerCase() === 'true';
+  if (config.collage) config.perItem = false;
+  if ((config.perItem || config.collage) && config.headerType !== 'image' && !config.imageTemplate) invalid.push('WHATSAPP_TEMPLATE_HEADER or WHATSAPP_IMAGE_TEMPLATE_NAME');
   if (invalid.length) throw new NotificationConfigError(invalid);
   return config;
 }
@@ -34,6 +36,11 @@ function getImageLink(value) {
 }
 
 async function sendOrderNotification(order, config, fetchImpl = fetch) {
+  if (config.collage) {
+    const { uploadCollage } = require('./order-collage');
+    const mediaId = await uploadCollage(order, config, fetchImpl);
+    return sendOrderNotification({ ...order, collage_media_id: mediaId }, { ...config, collage: false, perItem: false }, fetchImpl);
+  }
   if (config.perItem && order.items?.length) {
     const items = order.items;
     // Validate every snapshot image before sending any message.
@@ -63,15 +70,16 @@ async function sendOrderNotification(order, config, fetchImpl = fetch) {
   ];
   const imageRequired = config.headerType === 'image';
   const imageLink = (imageRequired || config.imageTemplate) ? getImageLink(order.product_image_url) : null;
-  if (imageRequired && !imageLink) throw new Error('A valid HTTPS product image is required for this WhatsApp template');
+  const headerImage = order.collage_media_id ? { id: order.collage_media_id } : imageLink ? { link: imageLink } : null;
+  if (imageRequired && !headerImage) throw new Error('A valid HTTPS product image is required for this WhatsApp template');
   const components = [{
     type: 'body',
     parameters: values.map((value) => ({
       type: 'text', text: String(value).replace(/\s+/g, ' ').trim(),
     })),
   }];
-  if (imageLink) components.unshift({
-    type: 'header', parameters: [{ type: 'image', image: { link: imageLink } }],
+  if (headerImage) components.unshift({
+    type: 'header', parameters: [{ type: 'image', image: headerImage }],
   });
   const response = await fetchImpl(
     `https://graph.facebook.com/${config.version}/${config.phoneId}/messages`,
@@ -84,7 +92,7 @@ async function sendOrderNotification(order, config, fetchImpl = fetch) {
         to: config.recipient,
         type: 'template',
         template: {
-          name: imageLink && !imageRequired ? config.imageTemplate : config.template,
+          name: headerImage && !imageRequired ? config.imageTemplate : config.template,
           language: { code: config.language },
           components,
         },

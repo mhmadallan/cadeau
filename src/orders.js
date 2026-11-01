@@ -82,6 +82,15 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
         if (!product.data || !getImageLink(product.data.image_url)) return res.status(409).json({ error: 'Every ordered product needs an image. Please contact the store.' });
       }
     }
+    if (config.provider === 'whatsapp' && config.collage) {
+      const { imageUrl } = require('./order-collage');
+      for (const id of new Set((payload.items || [{product_id:payload.product_id}]).map(item=>item.product_id))) {
+        const product = await supabase.from('products').select('image_url').eq('id',id).maybeSingle();
+        if(product.error) return res.status(503).json({error:'Could not check product images.'});
+        try { imageUrl(product.data?.image_url); }
+        catch { return res.status(409).json({error:'A product image is not configured for collage orders. Please contact the store.'}); }
+      }
+    }
     let requiredImage = null;
     if (config.provider === 'whatsapp' && config.headerType === 'image') {
       const product = await supabase.from('products').select('image_url').eq('id', (payload.product_id || payload.items?.[0].product_id)).maybeSingle();
