@@ -66,6 +66,15 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
       if (readiness.error) return res.status(503).json({ error: 'Ordering setup is incomplete. Please contact the store.' });
     }
 
+    if (config.provider === 'whatsapp' && config.perItem) {
+      const readiness = await supabase.from('orders').select('whatsapp_item_messages').limit(0);
+      if (readiness.error) return res.status(503).json({ error: 'Ordering setup is incomplete. Please contact the store.' });
+      for (const id of new Set((payload.items || [{ product_id: payload.product_id }]).map(item => item.product_id))) {
+        const product = await supabase.from('products').select('image_url').eq('id', id).maybeSingle();
+        if (product.error) return res.status(503).json({ error: 'Could not check product images. Please try again later.' });
+        if (!product.data || !getImageLink(product.data.image_url)) return res.status(409).json({ error: 'Every ordered product needs an image. Please contact the store.' });
+      }
+    }
     let requiredImage = null;
     if (config.provider === 'whatsapp' && config.headerType === 'image') {
       const product = await supabase.from('products').select('image_url').eq('id', (payload.product_id || payload.items?.[0].product_id)).maybeSingle();
@@ -99,6 +108,7 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
 
     let status = 'unknown';
     let messageId = null;
+    let itemMessages = [];
     try {
       let notificationOrder = requiredImage ? { ...order, product_image_url: requiredImage } : order;
       if (!requiredImage && (config.provider === 'telegram' || (config.provider === 'whatsapp' && config.imageTemplate)) && order.product_id) {
@@ -109,9 +119,13 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
           notificationOrder = { ...order, product_image_url: product.data.image_url };
         }
       }
-      messageId = await notify(notificationOrder, config);
+      const result = await notify(notificationOrder, config);
+      messageId = typeof result === 'string' ? result : result.messageId;
+      itemMessages = result.itemMessages || [];
       status = 'accepted';
     } catch (error) {
+      itemMessages = error.itemMessages || [];
+      messageId = itemMessages.find(item => item.message_id)?.message_id || null;
       // Keep actionable diagnostics without tokens, customer details, or provider response bodies.
       console.error('Order notification could not be confirmed', {
         provider: config.provider || 'whatsapp',
@@ -126,6 +140,7 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
     const notificationUpdate = config.provider === 'telegram'
       ? { notification_status: status, notification_provider: 'telegram', notification_message_id: messageId }
       : { notification_status: status, whatsapp_message_id: messageId };
+    if (config.provider === 'whatsapp' && config.perItem) notificationUpdate.whatsapp_item_messages = itemMessages;
     const saved = await supabase.from('orders').update(notificationUpdate).eq('id', order.id);
     if (saved.error) console.error(`Could not save notification status for order ${order.id}`);
     return res.status(201).json(summary({ ...order, notification_status: status }));

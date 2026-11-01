@@ -19,6 +19,8 @@ function getWhatsAppConfig(env = process.env) {
   config.imageTemplate = (env.WHATSAPP_IMAGE_TEMPLATE_NAME || '').trim();
   config.headerType = (env.WHATSAPP_TEMPLATE_HEADER || 'none').trim().toLowerCase();
   if (!['none', 'image'].includes(config.headerType)) invalid.push('WHATSAPP_TEMPLATE_HEADER');
+  config.perItem = read('WHATSAPP_ORDER_PER_ITEM').toLowerCase() === 'true';
+  if (config.perItem && config.headerType !== 'image' && !config.imageTemplate) invalid.push('WHATSAPP_TEMPLATE_HEADER or WHATSAPP_IMAGE_TEMPLATE_NAME');
   if (invalid.length) throw new NotificationConfigError(invalid);
   return config;
 }
@@ -32,6 +34,27 @@ function getImageLink(value) {
 }
 
 async function sendOrderNotification(order, config, fetchImpl = fetch) {
+  if (config.perItem && order.items?.length) {
+    const items = order.items;
+    // Validate every snapshot image before sending any message.
+    if (items.some(item => !getImageLink(item.image_url))) throw new Error('Every ordered item needs a valid HTTPS image');
+    const results = [];
+    for (const [index, item] of items.entries()) {
+      try {
+        const id = await sendOrderNotification({ ...order, items: undefined,
+          product_name: [item.product_name, item.color, item.size].filter(Boolean).join(' / ') + ' (item ' + (index + 1) + '/' + items.length + ')',
+          quantity: item.quantity, unit_price: item.unit_price, total: item.total,
+          product_image_url: item.image_url,
+        }, { ...config, perItem: false }, fetchImpl);
+        results.push({ item_index: index, product_id: item.product_id, message_id: id, status: 'accepted' });
+      } catch (error) {
+        results.push({ item_index: index, product_id: item.product_id, status: 'unknown' });
+        error.itemMessages = results;
+        throw error;
+      }
+    }
+    return { messageId: results[0].message_id, itemMessages: results };
+  }
   const values = [
     order.id, order.items?.length ? order.items.map(i => `${i.product_name} / ${i.color || 'Standard'} / ${i.size || 'One size'} x ${i.quantity} ($${Number(i.total).toFixed(2)})`).join('; ') : order.product_name, String(order.items?.length ? order.items.reduce((n,i) => n+i.quantity,0) : order.quantity),
     order.items?.length ? 'See item totals' : `$${Number(order.unit_price).toFixed(2)}`, `$${Number(order.total).toFixed(2)}`,

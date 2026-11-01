@@ -262,3 +262,38 @@ test('prepared message includes website product links and no monetary amounts', 
   const unsafe = new URL(orderLink({...order, image_url:'javascript:alert(1)'}, '491234567890')).searchParams.get('text');
   assert.doesNotMatch(unsafe, /javascript:/);
 });
+
+test('per-item API messages use each image, variant and line quantity', async () => {
+  const items = [
+    {product_id:'a',product_name:'Shirt',color:'Blue',size:'M',quantity:2,unit_price:10,total:20,image_url:'https://example.com/a.jpg'},
+    {product_id:'b',product_name:'Pants',color:'Black',size:'L',quantity:1,unit_price:30,total:30,image_url:'https://example.com/b.jpg'},
+  ];
+  const sent=[];
+  const result=await sendOrderNotification({...order,items},{...config,perItem:true,headerType:'image'},async(url,options)=>{
+    sent.push(JSON.parse(options.body));return {ok:true,json:async()=>({messages:[{id:'message-'+sent.length}]})};
+  });
+  assert.equal(sent.length,2);assert.equal(result.itemMessages.length,2);
+  sent.forEach((message,index)=>{
+    const components=message.template.components;
+    assert.equal(components[0].parameters[0].image.link,items[index].image_url);
+    const values=components[1].parameters.map(p=>p.text);
+    assert.ok(values[1].includes(items[index].product_name));assert.ok(values[1].includes(items[index].size));
+    assert.equal(values[2],String(items[index].quantity));assert.equal(values[5],order.customer_name.trim());
+  });
+  let attempts=0;
+  await assert.rejects(sendOrderNotification({...order,items},{...config,perItem:true,headerType:'image'},async()=>{
+    attempts++;return attempts===1?{ok:true,json:async()=>({messages:[{id:'first'}]})}:{ok:false,status:429,json:async()=>({error:{code:131056}})};
+  }),error=>error.itemMessages[0].message_id==='first' && error.itemMessages[1].status==='unknown');
+  assert.equal(attempts,2);
+  await assert.rejects(sendOrderNotification({...order,items:[items[0],{...items[1],image_url:'bad'}]},{...config,perItem:true},()=>assert.fail('Must validate all images first')));
+});
+test('per-item migration blocks stock reservation and partial IDs are saved',async()=>{
+ const settings={...config,provider:'whatsapp',perItem:true};
+ const missing=database({migrationError:{message:'missing'}});
+ assert.equal((await request(missing,{getConfig:()=>settings})).code,503);assert.equal(missing.state.rpcCalls,0);
+ const db=database({product:{image_url:'https://example.com/a.jpg'}});
+ const error=new Error('Failed');error.itemMessages=[{item_index:0,message_id:'first',status:'accepted'},{item_index:1,status:'unknown'}];
+ const result=await request(db,{getConfig:()=>settings,notify:async()=>{throw error;}});
+ assert.equal(result.body.notification_status,'unknown');assert.deepEqual(db.state.updates[0].whatsapp_item_messages,error.itemMessages);
+ assert.equal(db.state.updates[0].whatsapp_message_id,'first');
+});
