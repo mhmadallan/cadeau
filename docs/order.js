@@ -36,6 +36,11 @@ async function initOrder() {
       window.location.replace('./signin.html');
     }
   });
+  const accountResponse = await fetch(orderApi + '/api/me', { headers: { Authorization: 'Bearer ' + data.session.access_token } });
+  if (!accountResponse.ok) throw new Error('Please sign in again.');
+  const account = await accountResponse.json();
+  orderForm.elements.customer_phone.disabled = account.auth_type === 'phone';
+  orderForm.elements.customer_phone.parentElement.hidden = account.auth_type === 'phone';
   pendingKey = `cadeau-order:${data.session.user.id}:${orderProductId}`;
   pendingOrder = JSON.parse(sessionStorage.getItem(pendingKey) || 'null');
   const response = await fetch(`${orderApi}/api/products/${encodeURIComponent(orderProductId)}`, {
@@ -96,6 +101,11 @@ orderForm.addEventListener('submit', async (event) => {
     }
     sessionStorage.removeItem(pendingKey);
     orderForm.hidden = true;
+    if (result.confirmation_url) {
+      const link=document.createElement('a'); link.href=result.confirmation_url;
+      link.textContent='Send my order confirmation on WhatsApp'; link.target='_blank'; link.rel='noopener noreferrer';
+      orderMessage.after(link);
+    }
     showOrderMessage(`Order ${result.id} received. The store will contact you to arrange payment and delivery.`);
   } catch (error) {
     showOrderMessage(`${error.message}${pendingOrder ? ' Retry to confirm the same order; do not start a new order.' : ''}`);

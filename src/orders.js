@@ -1,4 +1,4 @@
-const { getCheckoutConfig, orderLink } = require('./checkout');
+const { getCheckoutConfig, orderLink, confirmationLink } = require('./checkout');
 const { notifyOrder } = require('./notifications');
 const { getImageLink } = require('./whatsapp');
 const { NotificationConfigError } = require('./notification-config-error');
@@ -39,14 +39,21 @@ function validateOrder(body) {
 function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = notifyOrder } = {}) {
   return async (req, res) => {
     let payload;
-    try { payload = validateOrder(req.body); }
+    let body = req.body;
+    if (req.authType === 'phone') {
+      const customer = await supabase.from('shop_customers').select('phone').eq('id', req.user.id).maybeSingle();
+      if (customer.error) return res.status(503).json({ error: 'Could not load your account phone number. Please try again.' });
+      if (!customer.data?.phone) return res.status(400).json({ error: 'Your account needs a phone number. Please contact the store.' });
+      body = { ...req.body, customer_phone: customer.data.phone };
+    }
+    try { payload = validateOrder(body); }
     catch (error) { return res.status(400).json({ error: error.message }); }
 
     // Look up retries before checking configuration, so an already saved order stays accessible.
     const existing = await supabase.from('orders').select('*')
       .eq(req.authType === 'phone' ? 'customer_id' : 'user_id', req.user.id).eq('request_id', payload.request_id).maybeSingle();
     if (existing.error) return res.status(503).json({ error: 'Ordering is unavailable. Please try again later.' });
-    const summary = (order, config) => ({ id: order.id, total: order.total, notification_status: order.notification_status, ...(config?.provider === 'whatsapp_link' ? { checkout_url: orderLink(order, config.recipient) } : {}) });
+    const summary = (order, config) => ({ id: order.id, total: order.total, notification_status: order.notification_status, ...(config?.provider === 'whatsapp_link' ? { checkout_url: orderLink(order, config.recipient) } : config?.provider === 'whatsapp' ? { confirmation_url: confirmationLink(order, config.recipient) } : {}) });
     if (existing.data) {
       let retryConfig;
       try { retryConfig = getConfig(); } catch {}
@@ -143,7 +150,7 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
     if (config.provider === 'whatsapp' && config.perItem) notificationUpdate.whatsapp_item_messages = itemMessages;
     const saved = await supabase.from('orders').update(notificationUpdate).eq('id', order.id);
     if (saved.error) console.error(`Could not save notification status for order ${order.id}`);
-    return res.status(201).json(summary({ ...order, notification_status: status }));
+    return res.status(201).json(summary({ ...order, notification_status: status }, config));
   };
 }
 

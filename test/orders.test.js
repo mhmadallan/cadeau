@@ -111,7 +111,7 @@ function database({ existing = null, rpcError = null, created = true, migrationE
     from(table) {
       const chain = {
         select() { return chain; }, eq() { return chain; },
-        maybeSingle: async () => ({ data: table === 'products' ? product : existing, error: null }),
+        maybeSingle: async () => ({ data: table === 'shop_customers' ? {phone: payload.customer_phone} : table === 'products' ? product : existing, error: null }),
         limit: async () => ({ error: migrationError }),
         update(values) { state.updates.push(values); return chain; },
       };
@@ -296,4 +296,29 @@ test('per-item migration blocks stock reservation and partial IDs are saved',asy
  const result=await request(db,{getConfig:()=>settings,notify:async()=>{throw error;}});
  assert.equal(result.body.notification_status,'unknown');assert.deepEqual(db.state.updates[0].whatsapp_item_messages,error.itemMessages);
  assert.equal(db.state.updates[0].whatsapp_message_id,'first');
+});
+
+test('WhatsApp API checkout also returns a customer confirmation without resending on retry',async()=>{
+ const settings={...config,provider:'whatsapp'};
+ for (const db of [database(),database({existing:order}),database({created:false})]) {
+   let calls=0;
+   const result=await request(db,{getConfig:()=>settings,notify:async()=>{calls++;return 'id';}});
+   const url=new URL(result.body.confirmation_url);
+   assert.equal(url.pathname,'/'+config.recipient);
+   assert.ok(url.searchParams.get('text').includes(order.id));
+   assert.ok(url.searchParams.get('text').includes('placed an order'));
+   assert.ok(url.searchParams.get('text').includes(order.customer_phone));
+   assert.doesNotMatch(url.searchParams.get('text'), /\$/);
+   assert.equal(result.body.checkout_url,undefined);
+   assert.ok(calls<=1);
+ }
+});
+
+test('phone checkout uses the stored account number instead of submitted values',async()=>{
+ for(const phone of [undefined,'+19999999999']) {
+   const db=database();
+   const result=await request(db,{}, {...payload,customer_phone:phone},'phone');
+   assert.equal(result.code,201);
+   assert.equal(db.state.lastRpc.args.p_customer_phone,payload.customer_phone);
+ }
 });

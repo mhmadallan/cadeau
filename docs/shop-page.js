@@ -21,6 +21,11 @@
       window.renderProductGallery(document.getElementById('gallery'), { ...product, image_urls: product.image_urls?.length ? product.image_urls : product.images });
     } else {
       const form = document.getElementById('checkoutForm'), summary = document.getElementById('summary');
+      const phoneField = document.getElementById('checkoutPhone');
+      if (phoneField) {
+        phoneField.hidden = me.auth_type === 'phone';
+        form.elements.customer_phone.disabled = me.auth_type === 'phone';
+      }
       let requestId = sessionStorage.getItem('cadeau-order-request:' + me.id);
       const snapshot = JSON.stringify(window.CadeauBag.read().map(i => ({product_id:i.product_id,variant_id:i.variant_id,quantity:i.quantity})));
       if (!requestId || sessionStorage.getItem('cadeau-order-cart:' + me.id) !== snapshot) { requestId=crypto.randomUUID(); sessionStorage.setItem('cadeau-order-request:' + me.id,requestId); sessionStorage.setItem('cadeau-order-cart:' + me.id,snapshot); }
@@ -28,7 +33,13 @@
       if (!items.length) { form.hidden=true; summary.textContent='Your bag is empty. Discover the collection to get started.'; }
       items.forEach(i => { const p=document.createElement('p'); p.textContent=`${i.name} · ${[i.color,i.size].filter(Boolean).join(' / ')} × ${i.quantity} —`; summary.append(p); });
       form.onsubmit=async e => { e.preventDefault(); const button=form.querySelector('button'); button.disabled=true; status.textContent='Confirming your order…';
-        try { const body=Object.fromEntries(new FormData(form)); body.request_id=requestId; body.items=JSON.parse(snapshot); const order=await request('orders',{method:'POST',body:JSON.stringify(body)}); window.CadeauBag.save([]); sessionStorage.removeItem('cadeau-order-request:' + me.id); sessionStorage.removeItem('cadeau-order-cart:' + me.id); form.hidden=true; if (order.checkout_url) {
+        try { const body=Object.fromEntries(new FormData(form)); body.request_id=requestId; body.items=JSON.parse(snapshot); const order=await request('orders',{method:'POST',body:JSON.stringify(body)}); window.CadeauBag.save([]); sessionStorage.removeItem('cadeau-order-request:' + me.id); sessionStorage.removeItem('cadeau-order-cart:' + me.id); form.hidden=true;
+        if (order.confirmation_url) {
+          const note=document.createElement('p'); note.textContent='You can also let the store know you placed this order from your own WhatsApp account. Press Send after WhatsApp opens.';
+          const link=document.createElement('a'); link.href=order.confirmation_url; link.textContent='Send my order confirmation on WhatsApp'; link.className='solid'; link.target='_blank'; link.rel='noopener noreferrer';
+          summary.append(note,link);
+        }
+        if (order.checkout_url) {
           status.textContent='Your order is saved. Press Send in WhatsApp to notify the store. Opening the chat does not send the message automatically.';
           const link=document.createElement('a'); link.href=order.checkout_url; link.textContent='Open WhatsApp to send order'; link.className='solid'; link.rel='noreferrer';
           summary.append(link);

@@ -22,4 +22,8 @@ function orderLink(order, recipient) {
     'Delivery address: ' + order.delivery_address, 'Notes: ' + (order.notes || 'None')].join('\n');
   return 'https://wa.me/' + recipient + '?text=' + encodeURIComponent(message);
 }
-module.exports = { getCheckoutConfig, orderLink };
+function confirmationLink(order, recipient) {
+  const message = 'Hello, I am ' + order.customer_name + '. I just placed an order on Cadeau.\nOrder reference: ' + order.id + '\nPhone: ' + order.customer_phone;
+  return 'https://wa.me/' + recipient + '?text=' + encodeURIComponent(message);
+}
+module.exports = { getCheckoutConfig, orderLink, confirmationLink };

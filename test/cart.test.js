@@ -21,7 +21,7 @@ test('catalog derives stock from variants and rejects duplicate combinations and
 test('cart uses the atomic RPC and server-owned order snapshot for notifications',async()=>{
  let rpc,notification;
  const saved={id,total:80,items:[{product_name:'T-shirt',color:'Black',size:'S',quantity:2,total:80}]};
- const db={from(){const q={select(){return q;},eq(){return q;},update(){return q;},maybeSingle:async()=>({data:null}),then(resolve){resolve({});}};return q;},rpc:async(name,args)=>{rpc={name,args};return {data:{created:true,order:saved}};}};
+ const db={from(table){const q={select(){return q;},eq(){return q;},update(){return q;},maybeSingle:async()=>({data:table==='shop_customers'?{phone:body.customer_phone}:null}),then(resolve){resolve({});}};return q;},rpc:async(name,args)=>{rpc={name,args};return {data:{created:true,order:saved}};}};
  const res={status(n){this.code=n;return this;},json(value){this.body=value;return this;}};
  await createOrderHandler(db,{getConfig:()=>({provider:'whatsapp'}),notify:async order=>{notification=order;return 'message';}})({body,user:{id},authType:'phone'},res);
  assert.equal(rpc.name,'place_cart_order');assert.equal(rpc.args.p_customer_id,id);assert.equal(rpc.args.p_user_id,null);assert.deepEqual(rpc.args.p_items,body.items);assert.equal(notification,saved);assert.equal(res.code,201);

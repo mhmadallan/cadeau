@@ -138,6 +138,7 @@ app.get('/api/me', requireAuthenticatedUser, (req, res) => {
   return res.json({
     id: req.user.id,
     email: req.user.email,
+    auth_type: req.authType,
     role: req.userRole,
   });
 });
