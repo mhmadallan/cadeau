@@ -21,10 +21,11 @@
       window.renderProductGallery(document.getElementById('gallery'), { ...product, image_urls: product.image_urls?.length ? product.image_urls : product.images });
     } else {
       const form = document.getElementById('checkoutForm'), summary = document.getElementById('summary');
+      const phoneSignIn = me.auth_type === 'phone' || session.access_token.startsWith('shop_');
       const phoneField = document.getElementById('checkoutPhone');
       if (phoneField) {
-        phoneField.hidden = me.auth_type === 'phone';
-        form.elements.customer_phone.disabled = me.auth_type === 'phone';
+        phoneField.hidden = phoneSignIn;
+        form.elements.customer_phone.disabled = phoneSignIn;
       }
       let requestId = sessionStorage.getItem('cadeau-order-request:' + me.id);
       const snapshot = JSON.stringify(window.CadeauBag.read().map(i => ({product_id:i.product_id,variant_id:i.variant_id,quantity:i.quantity})));

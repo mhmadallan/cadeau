@@ -39,8 +39,9 @@ async function initOrder() {
   const accountResponse = await fetch(orderApi + '/api/me', { headers: { Authorization: 'Bearer ' + data.session.access_token } });
   if (!accountResponse.ok) throw new Error('Please sign in again.');
   const account = await accountResponse.json();
-  orderForm.elements.customer_phone.disabled = account.auth_type === 'phone';
-  orderForm.elements.customer_phone.parentElement.hidden = account.auth_type === 'phone';
+  const phoneSignIn = account.auth_type === 'phone' || data.session.access_token.startsWith('shop_');
+  orderForm.elements.customer_phone.disabled = phoneSignIn;
+  orderForm.elements.customer_phone.parentElement.hidden = phoneSignIn;
   pendingKey = `cadeau-order:${data.session.user.id}:${orderProductId}`;
   pendingOrder = JSON.parse(sessionStorage.getItem(pendingKey) || 'null');
   const response = await fetch(`${orderApi}/api/products/${encodeURIComponent(orderProductId)}`, {
