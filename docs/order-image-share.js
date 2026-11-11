@@ -1,14 +1,25 @@
 window.showOrderImageShare = function(container, order, api, token) {
- const panel=document.createElement('section'),note=document.createElement('p'),preview=document.createElement('img'),send=document.createElement('a');
+ const panel=document.createElement('section'),note=document.createElement('p'),preview=document.createElement('img'),send=document.createElement('button');
  panel.style.cssText='display:flex;flex-direction:column;gap:12px;margin-top:24px';
- note.textContent='Your order is saved. Open WhatsApp below and press Send. The message includes a private link to your order image, valid for 7 days.';
  preview.alt='Your order summary';preview.style.cssText='display:block;max-width:100%;height:auto;margin:16px 0';preview.hidden=true;
- send.textContent='Send order on WhatsApp';send.className='solid';send.href=order.confirmation_url;send.target='_blank';send.rel='noopener noreferrer';
+ send.type='button';send.className='solid';
  panel.append(note,preview,send);container.append(panel);
- let objectUrl;
+ let objectUrl,ready=false;
  window.addEventListener('pagehide',()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);},{once:true});
- fetch(api+'/api/orders/'+encodeURIComponent(order.id)+'/image',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(120000)})
- .then(async response=>{if(!response.ok)throw new Error('Preview unavailable');return response.blob();})
- .then(blob=>{objectUrl=URL.createObjectURL(blob);preview.src=objectUrl;preview.hidden=false;})
- .catch(()=>{note.textContent='Your order is saved, but the image preview could not load. You can still send the order reference and image link to the admin below.';});
+ async function prepare(){
+  send.disabled=true;send.textContent='Preparing order image...';note.textContent='Your order is saved. Preparing its image before opening WhatsApp...';
+  try{
+   const response=await fetch(api+'/api/orders/'+encodeURIComponent(order.id)+'/image',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(120000)});
+   if(!response.ok)throw new Error('Preview unavailable');
+   const blob=await response.blob();
+   if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(blob);
+   preview.src=objectUrl;preview.hidden=false;ready=true;
+   send.textContent='Send order on WhatsApp';
+   note.textContent='Your order image is ready. Open WhatsApp and press Send. The private image link is valid for 7 days.';
+  }catch{
+   ready=false;send.textContent='Retry preparing image';note.textContent='Your order is saved, but its image could not be prepared. Retry here; do not place another order.';
+  }finally{send.disabled=false;}
+ }
+ send.onclick=()=>{if(ready)window.location.assign(order.confirmation_url);else prepare();};
+ prepare();
 };

@@ -1,3 +1,4 @@
+const { cacheFor } = require('./order-image-cache');
 const { verifyImageShare } = require('./order-share-link');
 const sharp = require('sharp');
 const { buildCollage, download } = require('./order-collage');
@@ -25,7 +26,7 @@ function createOrderImageHandler(db,{render=renderOrderImage,fetchImpl=fetch,env
   if(!order)return res.status(404).json({error:'Order not found.'});
   try {
    if(!order.items?.length && order.product_id){const p=await db.from('products').select('image_url').eq('id',order.product_id).maybeSingle();if(p.error)throw new Error('Image lookup failed');order.product_image_url=p.data?.image_url;}
-   const bytes=await render(order,url=>download(url,fetchImpl,env));
+   const bytes=await cacheFor(db)(order.id,()=>render(order,url=>download(url,fetchImpl,env)));
    return res.type('image/jpeg').set('Content-Disposition','inline; filename="cadeau-order-'+order.id+'.jpg"').send(bytes);
   }catch{return res.status(503).json({error:'Your order is saved, but its image could not be prepared. Retry the image or message the store directly.'});}
  };
