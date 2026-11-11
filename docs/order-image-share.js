@@ -1,33 +1,14 @@
 window.showOrderImageShare = function(container, order, api, token) {
- const panel=document.createElement('section'), note=document.createElement('p'), preview=document.createElement('img');
- const share=document.createElement('button'), download=document.createElement('a'), retry=document.createElement('button'), chat=document.createElement('a');
- share.type=retry.type='button';share.textContent='Share order image';retry.textContent='Prepare image';
- share.className=download.className=chat.className='solid';share.disabled=true;download.hidden=true;
- download.textContent='Download order image';chat.textContent='Message admin on WhatsApp';chat.href=order.confirmation_url;chat.target='_blank';chat.rel='noopener noreferrer';
- preview.alt='Your order summary';preview.style.cssText='display:block;max-width:100%;height:auto;margin:16px 0';preview.hidden=true;
+ const panel=document.createElement('section'),note=document.createElement('p'),preview=document.createElement('img'),send=document.createElement('a');
  panel.style.cssText='display:flex;flex-direction:column;gap:12px;margin-top:24px';
- panel.append(note,preview,share,download,retry,chat);container.append(panel);
- let file,objectUrl;
- const dispose=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);};window.addEventListener('pagehide',dispose,{once:true});
- async function prepare(){
-  retry.disabled=true;note.textContent='Preparing your order image...';
-  try{
-   const response=await fetch(api+'/api/orders/'+encodeURIComponent(order.id)+'/image',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(120000)});
-   if(!response.ok){let data={};try{data=await response.json();}catch{}throw new Error(data.error||'Could not prepare image. Please retry.');}
-   const blob=await response.blob();dispose();objectUrl=URL.createObjectURL(blob);
-   file=new File([blob],'cadeau-order-'+order.id+'.jpg',{type:'image/jpeg'});
-   preview.src=download.href=objectUrl;preview.hidden=download.hidden=false;download.download=file.name;
-   share.disabled=!(navigator.share && navigator.canShare?.({files:[file]}));
-   note.textContent=share.disabled?'Download the image, open the admin chat and attach it manually. Your order is already saved.':'Tap Share order image, choose WhatsApp, select the admin chat and press Send. Your order is already saved.';
-   retry.hidden=true;
-  }catch(error){note.textContent=error.message+' Your order is saved; do not place it again.';retry.textContent='Retry preparing image';}
-  finally{retry.disabled=false;}
- }
- share.onclick=()=>{
-  if(!file)return;
-  navigator.share({files:[file],title:'Cadeau order '+order.id}).catch(error=>{
-   if(error.name!=='AbortError')note.textContent='Sharing is unavailable. Download the image and attach it in the admin WhatsApp chat.';
-  });
- };
- retry.onclick=prepare;prepare();
+ note.textContent='Your order is saved. Open WhatsApp below and press Send. The message includes a private link to your order image, valid for 7 days.';
+ preview.alt='Your order summary';preview.style.cssText='display:block;max-width:100%;height:auto;margin:16px 0';preview.hidden=true;
+ send.textContent='Send order on WhatsApp';send.className='solid';send.href=order.confirmation_url;send.target='_blank';send.rel='noopener noreferrer';
+ panel.append(note,preview,send);container.append(panel);
+ let objectUrl;
+ window.addEventListener('pagehide',()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);},{once:true});
+ fetch(api+'/api/orders/'+encodeURIComponent(order.id)+'/image',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(120000)})
+ .then(async response=>{if(!response.ok)throw new Error('Preview unavailable');return response.blob();})
+ .then(blob=>{objectUrl=URL.createObjectURL(blob);preview.src=objectUrl;preview.hidden=false;})
+ .catch(()=>{note.textContent='Your order is saved, but the image preview could not load. You can still send the order reference and image link to the admin below.';});
 };

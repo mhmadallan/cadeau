@@ -324,7 +324,7 @@ test('phone checkout uses the stored account number instead of submitted values'
 });
 
 test('customer sharing saves orders without calling Meta and supports repeat confirmation',async()=>{
- const config=getCheckoutConfig({ORDER_CHECKOUT_MODE:'whatsapp_share',WHATSAPP_RECIPIENT_NUMBER:'491234567890'});
+ const config=getCheckoutConfig({ORDER_CHECKOUT_MODE:'whatsapp_share',WHATSAPP_RECIPIENT_NUMBER:'491234567890',ORDER_SHARE_SECRET:'test-secret'});
  for(const db of [database(),database({existing:order})]) {
  const result=await request(db,{getConfig:()=>config,notify:()=>assert.fail('Sharing must not call API')});
  assert.equal(result.body.share_image,true);assert.match(result.body.confirmation_url,/^https:\/\/wa.me\//);assert.equal(result.body.notification_status,'pending');assert.equal(result.body.checkout_url,undefined);

@@ -1,4 +1,4 @@
-const { getCheckoutConfig, orderLink, confirmationLink } = require('./checkout');
+const { getCheckoutConfig, orderLink, confirmationLink, imageShareLink } = require('./checkout');
 const { notifyOrder } = require('./notifications');
 const { getImageLink } = require('./whatsapp');
 const { NotificationConfigError } = require('./notification-config-error');
@@ -53,7 +53,7 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
     const existing = await supabase.from('orders').select('*')
       .eq(req.authType === 'phone' ? 'customer_id' : 'user_id', req.user.id).eq('request_id', payload.request_id).maybeSingle();
     if (existing.error) return res.status(503).json({ error: 'Ordering is unavailable. Please try again later.' });
-    const summary = (order, config) => ({ id: order.id, total: order.total, notification_status: order.notification_status, ...(config?.provider === 'whatsapp_link' ? { checkout_url: orderLink(order, config.recipient) } : config?.provider === 'whatsapp_share' ? { share_image: true, confirmation_url: confirmationLink(order, config.recipient) } : config?.provider === 'whatsapp' ? { confirmation_url: confirmationLink(order, config.recipient) } : {}) });
+    const summary = (order, config) => ({ id: order.id, total: order.total, notification_status: order.notification_status, ...(config?.provider === 'whatsapp_link' ? { checkout_url: orderLink(order, config.recipient) } : config?.provider === 'whatsapp_share' ? { share_image: true, confirmation_url: confirmationLink(order, config.recipient, imageShareLink(order.id, config.shareEnv)) } : config?.provider === 'whatsapp' ? { confirmation_url: confirmationLink(order, config.recipient) } : {}) });
     if (existing.data) {
       let retryConfig;
       try { retryConfig = getConfig(); } catch {}

@@ -1,3 +1,4 @@
+const { verifyImageShare } = require('./order-share-link');
 const sharp = require('sharp');
 const { buildCollage, download } = require('./order-collage');
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -11,17 +12,21 @@ async function renderOrderImage(order, load) {
  if(bytes.length>5*1024*1024) throw new Error('Order image too large');
  return bytes;
 }
-function createOrderImageHandler(db,{render=renderOrderImage,fetchImpl=fetch,env=process.env}={}) {
+function createOrderImageHandler(db,{render=renderOrderImage,fetchImpl=fetch,env=process.env,shared=false}={}) {
  return async(req,res)=>{
   res.set('Cache-Control','no-store');
-  if(!uuid.test(req.params.id))return res.status(404).json({error:'Order not found.'});
-  const {data:order,error}=await db.from('orders').select('*').eq('id',req.params.id).eq(req.authType==='phone'?'customer_id':'user_id',req.user.id).maybeSingle();
+  res.set('Referrer-Policy','no-referrer');res.set('X-Robots-Tag','noindex, nofollow, noarchive');
+  const id=shared ? verifyImageShare(req.params.token,env) : req.params.id;
+  if(!uuid.test(id || ''))return res.status(404).json({error:'Order not found.'});
+  let query=db.from('orders').select('*').eq('id',id);
+  if(!shared)query=query.eq(req.authType==='phone'?'customer_id':'user_id',req.user.id);
+  const {data:order,error}=await query.maybeSingle();
   if(error)return res.status(503).json({error:'Could not load your order.'});
   if(!order)return res.status(404).json({error:'Order not found.'});
   try {
    if(!order.items?.length && order.product_id){const p=await db.from('products').select('image_url').eq('id',order.product_id).maybeSingle();if(p.error)throw new Error('Image lookup failed');order.product_image_url=p.data?.image_url;}
    const bytes=await render(order,url=>download(url,fetchImpl,env));
-   return res.type('image/jpeg').set('Content-Disposition','attachment; filename="cadeau-order-'+order.id+'.jpg"').send(bytes);
+   return res.type('image/jpeg').set('Content-Disposition','inline; filename="cadeau-order-'+order.id+'.jpg"').send(bytes);
   }catch{return res.status(503).json({error:'Your order is saved, but its image could not be prepared. Retry the image or message the store directly.'});}
  };
 }

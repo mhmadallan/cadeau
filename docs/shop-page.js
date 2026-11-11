@@ -33,9 +33,9 @@
       const items = window.CadeauBag.read();
       if (!items.length) {
         try {
-          const previous=JSON.parse(sessionStorage.getItem('cadeau-last-share:' + me.id) || 'null');
+          const previous=JSON.parse(sessionStorage.getItem('cadeau-last-share-v2:' + me.id) || 'null');
           if(previous?.share_image && previous.id && previous.confirmation_url) {
-            form.hidden=true;content.hidden=false;status.textContent='Your order is saved. You can share its image below.';
+            form.hidden=true;content.hidden=false;status.textContent='Your order is saved. You can send its image link below.';
             window.showOrderImageShare(summary,previous,api,session.access_token);return;
           }
         } catch {}
@@ -45,8 +45,8 @@
       form.onsubmit=async e => { e.preventDefault(); const button=form.querySelector('button'); button.disabled=true; status.textContent='Confirming your order…';
         try { const body=Object.fromEntries(new FormData(form)); body.request_id=requestId; body.items=JSON.parse(snapshot); const order=await request('orders',{method:'POST',body:JSON.stringify(body)}); window.CadeauBag.save([]); sessionStorage.removeItem('cadeau-order-request:' + me.id); sessionStorage.removeItem('cadeau-order-cart:' + me.id); form.hidden=true;
         if (order.share_image) {
-          sessionStorage.setItem('cadeau-last-share:' + me.id, JSON.stringify(order));
-          status.textContent='Your order is saved. Share the image below to notify the store.';
+          sessionStorage.setItem('cadeau-last-share-v2:' + me.id, JSON.stringify(order));
+          status.textContent='Your order is saved. Send the prepared WhatsApp message below to notify the store.';
           window.showOrderImageShare(summary,order,api,session.access_token);
           return;
         }
