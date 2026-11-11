@@ -1,3 +1,4 @@
+const { createOrderPreview } = require('./order-preview');
 const { createOrderImageHandler } = require('./order-image');
 const { createProductShare } = require('./product-share');
 const express = require('express');
@@ -152,6 +153,7 @@ app.patch('/api/admin/access/:id', requireAdmin, customerAccess.decide);
 
 app.post('/api/orders', requireAuthenticatedUser, createOrderHandler(supabase));
 app.get('/api/orders/:id/image', requireAuthenticatedUser, createOrderImageHandler(supabase));
+app.get('/order-preview/:token', createOrderPreview(supabase));
 app.get('/order-image/:token', createOrderImageHandler(supabase, {shared:true}));
 
 app.get('/api/products', requireAuthenticatedUser, async (req, res) => {

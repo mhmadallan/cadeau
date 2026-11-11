@@ -6,7 +6,7 @@ function imageShareLink(id,env=process.env,now=Date.now()){
  const value=Buffer.from(JSON.stringify({id,expires:Math.floor(now/1000)+7*86400})).toString('base64url');
  const base=new URL(env.PUBLIC_API_URL || 'https://cadeau-hbmt.onrender.com');
  if(base.protocol!=='https:')throw new Error('Order sharing requires HTTPS');
- return new URL('/order-image/'+value+'.'+signature(value,key),base).href;
+ return new URL('/order-preview/'+value+'.'+signature(value,key),base).href;
 }
 function verifyImageShare(token,env=process.env,now=Date.now()){
  try{

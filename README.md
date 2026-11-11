@@ -382,3 +382,5 @@ Set `WHATSAPP_ORDER_COLLAGE=true` with API/WhatsApp checkout and an approved ima
 
 ### Customer sends the order image link
 Set `ORDER_CHECKOUT_MODE=whatsapp_share`. Checkout displays the order image and one Send order on WhatsApp button. This opens the configured admin recipient directly with the order confirmation and a signed image link. The customer presses Send; no Meta API request is made. The link grants anyone who possesses it access to the collage (including the customer name and phone) for 7 days. It is not an image attachment and WhatsApp previews are not guaranteed. Links are signed with `ORDER_SHARE_SECRET`, falling back to the server-only Supabase service-role key. Rotating that key invalidates outstanding links. No SQL migration is required. Existing API modes remain available.
+
+New shared order links open a server-rendered preview page with Open Graph image metadata. Both the page and JPEG require the same valid seven-day signature. Existing direct-image links continue to work. WhatsApp may cache a preview beyond link expiry, and displaying a preview is controlled by WhatsApp.
