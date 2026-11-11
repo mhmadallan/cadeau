@@ -45,4 +45,4 @@ async function uploadCollage(order, config, fetchImpl=fetch, env=process.env) {
   if(!response.ok || !data.id) { const error=new Error('Collage upload failed'); error.httpStatus=response.status;error.providerCode=data.error?.code;throw error; }
   return data.id;
 }
-module.exports={buildCollage,uploadCollage,imageUrl};
+module.exports={buildCollage,uploadCollage,imageUrl,download};

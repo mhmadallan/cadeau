@@ -102,7 +102,11 @@ orderForm.addEventListener('submit', async (event) => {
     }
     sessionStorage.removeItem(pendingKey);
     orderForm.hidden = true;
-    if (result.confirmation_url) {
+    if (result.share_image) {
+      const holder=document.createElement('div');orderMessage.after(holder);
+      window.showOrderImageShare(holder,result,orderApi,data.session.access_token);
+    }
+    if (!result.share_image && result.confirmation_url) {
       const link=document.createElement('a'); link.href=result.confirmation_url;
       link.textContent='Send my order confirmation on WhatsApp'; link.target='_blank'; link.rel='noopener noreferrer';
       orderMessage.after(link);

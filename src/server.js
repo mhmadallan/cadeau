@@ -1,3 +1,4 @@
+const { createOrderImageHandler } = require('./order-image');
 const { createProductShare } = require('./product-share');
 const express = require('express');
 const { socialSettings } = require('./social-settings');
@@ -150,6 +151,7 @@ app.get('/api/admin/access', requireAdmin, customerAccess.list);
 app.patch('/api/admin/access/:id', requireAdmin, customerAccess.decide);
 
 app.post('/api/orders', requireAuthenticatedUser, createOrderHandler(supabase));
+app.get('/api/orders/:id/image', requireAuthenticatedUser, createOrderImageHandler(supabase));
 
 app.get('/api/products', requireAuthenticatedUser, async (req, res) => {
   let query = supabase.from(tableName).select('*');

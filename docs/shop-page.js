@@ -31,10 +31,25 @@
       const snapshot = JSON.stringify(window.CadeauBag.read().map(i => ({product_id:i.product_id,variant_id:i.variant_id,quantity:i.quantity})));
       if (!requestId || sessionStorage.getItem('cadeau-order-cart:' + me.id) !== snapshot) { requestId=crypto.randomUUID(); sessionStorage.setItem('cadeau-order-request:' + me.id,requestId); sessionStorage.setItem('cadeau-order-cart:' + me.id,snapshot); }
       const items = window.CadeauBag.read();
+      if (!items.length) {
+        try {
+          const previous=JSON.parse(sessionStorage.getItem('cadeau-last-share:' + me.id) || 'null');
+          if(previous?.share_image && previous.id && previous.confirmation_url) {
+            form.hidden=true;content.hidden=false;status.textContent='Your order is saved. You can share its image below.';
+            window.showOrderImageShare(summary,previous,api,session.access_token);return;
+          }
+        } catch {}
+      }
       if (!items.length) { form.hidden=true; summary.textContent='Your bag is empty. Discover the collection to get started.'; }
       items.forEach(i => { const p=document.createElement('p'); p.textContent=`${i.name} · ${[i.color,i.size].filter(Boolean).join(' / ')} × ${i.quantity} —`; summary.append(p); });
       form.onsubmit=async e => { e.preventDefault(); const button=form.querySelector('button'); button.disabled=true; status.textContent='Confirming your order…';
         try { const body=Object.fromEntries(new FormData(form)); body.request_id=requestId; body.items=JSON.parse(snapshot); const order=await request('orders',{method:'POST',body:JSON.stringify(body)}); window.CadeauBag.save([]); sessionStorage.removeItem('cadeau-order-request:' + me.id); sessionStorage.removeItem('cadeau-order-cart:' + me.id); form.hidden=true;
+        if (order.share_image) {
+          sessionStorage.setItem('cadeau-last-share:' + me.id, JSON.stringify(order));
+          status.textContent='Your order is saved. Share the image below to notify the store.';
+          window.showOrderImageShare(summary,order,api,session.access_token);
+          return;
+        }
         if (order.confirmation_url) {
           const note=document.createElement('p'); note.textContent='You can also let the store know you placed this order from your own WhatsApp account. Press Send after WhatsApp opens.';
           const link=document.createElement('a'); link.href=order.confirmation_url; link.textContent='Send my order confirmation on WhatsApp'; link.className='solid'; link.target='_blank'; link.rel='noopener noreferrer';

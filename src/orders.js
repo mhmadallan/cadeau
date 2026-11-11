@@ -53,7 +53,7 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
     const existing = await supabase.from('orders').select('*')
       .eq(req.authType === 'phone' ? 'customer_id' : 'user_id', req.user.id).eq('request_id', payload.request_id).maybeSingle();
     if (existing.error) return res.status(503).json({ error: 'Ordering is unavailable. Please try again later.' });
-    const summary = (order, config) => ({ id: order.id, total: order.total, notification_status: order.notification_status, ...(config?.provider === 'whatsapp_link' ? { checkout_url: orderLink(order, config.recipient) } : config?.provider === 'whatsapp' ? { confirmation_url: confirmationLink(order, config.recipient) } : {}) });
+    const summary = (order, config) => ({ id: order.id, total: order.total, notification_status: order.notification_status, ...(config?.provider === 'whatsapp_link' ? { checkout_url: orderLink(order, config.recipient) } : config?.provider === 'whatsapp_share' ? { share_image: true, confirmation_url: confirmationLink(order, config.recipient) } : config?.provider === 'whatsapp' ? { confirmation_url: confirmationLink(order, config.recipient) } : {}) });
     if (existing.data) {
       let retryConfig;
       try { retryConfig = getConfig(); } catch {}
@@ -112,7 +112,7 @@ function createOrderHandler(supabase, { getConfig = getCheckoutConfig, notify = 
     const order = data.order;
     if (!data.created) return res.json(summary(order, config));
     // A prepared link is not a sent message; leave notification_status pending.
-    if (config.provider === 'whatsapp_link') return res.status(201).json(summary(order, config));
+    if (['whatsapp_link','whatsapp_share'].includes(config.provider)) return res.status(201).json(summary(order, config));
 
     if (config.provider === 'telegram') {
       const tracking = await supabase.from('orders').update({ notification_provider: 'telegram' }).eq('id', order.id);
